@@ -1,3 +1,5 @@
+using Dapper;
+using Npgsql;
 
 namespace Master;
 
@@ -9,6 +11,10 @@ public class Program
 
         // Add services to the container.
         builder.Services.AddAuthorization();
+
+        var connectionString = builder.Configuration.GetConnectionString("Postgres")
+            ?? throw new InvalidOperationException("Connection string 'Postgres' is not configured.");
+        builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
