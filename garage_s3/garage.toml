@@ -1,0 +1,19 @@
+# garage.toml
+metadata_dir = "/var/lib/garage/meta"
+data_dir     = "/var/lib/garage/data"
+db_engine    = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_secret    = "0a5c63941cf6f2f134786a238edfb8397c2e1dffd86f30677b1952cc8610a31c"
+# openssl rand -hex 32
+
+[s3_api]
+api_bind_addr = "[::]:3900"
+s3_region     = "garage"
+root_domain   = ".s3.local"
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token   = "zytVtNUusoIOAJPRINGy8scwtV/B3cO880dVqdBtNVw="
+# openssl rand -base64 32

@@ -1,0 +1,16 @@
+services:
+  s3:
+    container_name: s3
+    image: dxflrs/garage:v2.5.0
+    restart: unless-stopped
+    ports: 
+      - "127.0.0.1:3900:3900"
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+
+
+volumes:
+  garage_meta:
+  garage_data:
