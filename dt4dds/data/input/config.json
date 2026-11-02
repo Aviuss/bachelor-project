@@ -1,0 +1,38 @@
+{
+    "id": 1,
+    "used_algorithm": "NOREC",
+    "primers": {},
+
+    "processes": {
+        "synthesis": {
+            "is_perfect": true,
+            "method": "Array",
+            "oligo_distribution_type": "lognormal",
+            "oligo_distribution_params": {"mean": 0, "sigma": 0.30},
+            "sampling": 1000,
+            "volume": 10
+        },
+
+        "pcr": {
+
+            "is_perfect": true,
+            "pcr_mode": "HiFi",
+            "primers": "primers_2",
+            "template_volume": 1,
+            "volume":20,
+            "efficiency_mean": 1,
+            "n_cycles": 20,
+            "polymerase_basesubstitutionrate": 0,
+            "polymerase_fidelity": 100
+        },
+
+        "aging": {
+            "is_perfect": true,
+            "n_halflives": 2
+        },
+
+        "sequencing": {
+            "is_perfect": true
+        }
+    }
+}

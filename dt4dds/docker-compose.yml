@@ -1,0 +1,5 @@
+services:
+  dt4dds:
+    image: dt4dds-custom
+    volumes:
+      - ./data:/data
