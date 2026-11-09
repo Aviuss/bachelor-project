@@ -44,7 +44,7 @@ class Runner : IDisposable
             ? new Uri("npipe://./pipe/docker_engine")
             : new Uri("unix:///var/run/docker.sock");
 
-        _client = new DockerClientConfiguration(uri).CreateClient();
+        _client = new DockerClientBuilder().WithEndpoint(uri).Build();
     }
 
 
@@ -112,7 +112,6 @@ class Runner : IDisposable
 
         using var multiplexedStream = await _client.Containers.GetContainerLogsAsync(
             _containerId,
-            false,
             new ContainerLogsParameters
             {
                 ShowStdout = true,
