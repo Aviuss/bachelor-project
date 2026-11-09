@@ -104,9 +104,9 @@ CREATE TABLE job_inputs (
 
 CREATE VIEW machines_status AS
 SELECT m.*,
-	m.last_seen_at > now() - interval '2 minutes' AS alive,
-	m.memory_capacity_mb - COALESCE(r.mem, 0)     AS free_memory_mb,
-	m.cpu_capacity       - COALESCE(r.cpu, 0)     AS free_cpu
+    COALESCE(m.last_seen_at > now() - interval '2 minutes', false) AS alive,
+	COALESCE(m.memory_capacity_mb, 0) - COALESCE(r.mem, 0)     AS free_memory_mb,
+	COALESCE(m.cpu_capacity, 0)       - COALESCE(r.cpu, 0)     AS free_cpu
 FROM machines m
 LEFT JOIN (SELECT machine_id, SUM(mem_mb) AS mem, SUM(cpu) AS cpu
 		FROM job_attempts
