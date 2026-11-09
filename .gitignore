@@ -137,3 +137,8 @@ _NCrunch*
 
 *.env
 garage.toml
+jak_odpalic_*
+jak_odpalić_*
+jak_uzyc_*
+*.fq.gz
+perfect_synthesis.yaml

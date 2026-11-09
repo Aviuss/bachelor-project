@@ -1,3 +1,5 @@
 <Solution>
+  <Project Path="Agent/Agent.csproj" />
   <Project Path="Master/Master.csproj" />
+  <Project Path="Shared/Shared.csproj" />
 </Solution>
