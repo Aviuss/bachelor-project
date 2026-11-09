@@ -3,7 +3,7 @@ using System.Text;
 using Dapper;
 using Npgsql;
 
-namespace Master.Machines;
+namespace Master.Agent;
 
 public static class AddMachineCommand
 {

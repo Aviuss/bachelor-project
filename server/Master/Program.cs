@@ -1,5 +1,5 @@
 using Master.Endpoints;
-using Master.Machines;
+using Agent;
 using Npgsql;
 using Shared;
 
