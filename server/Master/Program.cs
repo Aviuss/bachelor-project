@@ -61,6 +61,7 @@ public class Program
             endpoint: Required("AWS_ENDPOINT_URL_S3"),
             region: Required("AWS_DEFAULT_REGION"),
             accessKey: Required("AWS_ACCESS_KEY_ID"),
-            secretKey: Required("AWS_SECRET_ACCESS_KEY")));
+            secretKey: Required("AWS_SECRET_ACCESS_KEY"),
+            bucket: Required("S3_BUCKET")));
     }
 }
