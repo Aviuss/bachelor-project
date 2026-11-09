@@ -1,5 +1,6 @@
-using Master.Endpoints;
-using Agent;
+using Master.Endpoints.Private;
+using Master.Endpoints.Public;
+using Master.Agent;
 using Npgsql;
 using Shared;
 
@@ -9,33 +10,46 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var builder = WebApplication.CreateBuilder(args);
-
         if (args is ["add-machine"])
         {
-            await AddMachineCommand.RunAsync(BuildConnectionString(builder.Configuration));
+            var config = WebApplication.CreateBuilder(args).Configuration;
+            await AddMachineCommand.RunAsync(BuildPostgresConnectionString(config));
             return;
         }
 
-        var publicPort = builder.Configuration.GetValue("PUBLIC_API_PORT", 5080);
-        var agentPort = builder.Configuration.GetValue("AGENT_API_PORT", 5081);
-        builder.WebHost.ConfigureKestrel(kestrel =>
-        {
-            kestrel.ListenAnyIP(publicPort);
-            kestrel.ListenAnyIP(agentPort);
-        });
+        var agentApp = BuildApi(args, "AGENT_API_PORT", 5081);
+        agentApp.MapAgentApi();
 
-        // Add services to the container.
+        var publicApp = BuildApi(args, "PUBLIC_API_PORT", 5080);
+        publicApp.MapPublicApi();
+
+        await agentApp.StartAsync();
+        await publicApp.StartAsync();
+        
+        await Task.WhenAll(publicApp.WaitForShutdownAsync(), agentApp.WaitForShutdownAsync());
+    }
+
+    private static WebApplication BuildApi(string[] args, string portKey, int defaultPort)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        var port = builder.Configuration.GetValue(portKey, defaultPort);
+        builder.WebHost.ConfigureKestrel(kestrel => kestrel.ListenAnyIP(port));
+
         builder.Services.AddAuthorization();
+        builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(BuildPostgresConnectionString(builder.Configuration)));
 
-        AddStorage(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton(new S3manager(
+            endpoint: Required(builder.Configuration, "AWS_ENDPOINT_URL_S3"),
+            region: Required(builder.Configuration, "AWS_DEFAULT_REGION"),
+            accessKey: Required(builder.Configuration, "AWS_ACCESS_KEY_ID"),
+            secretKey: Required(builder.Configuration, "AWS_SECRET_ACCESS_KEY"),
+            bucket: Required(builder.Configuration, "S3_BUCKET")));
 
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
 
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
@@ -43,26 +57,10 @@ public class Program
 
         app.UseAuthorization();
 
-        app.MapPublicApi();
-        app.MapAgentApi();
-
-        await app.RunAsync();
+        return app;
     }
 
-    private static void AddStorage(IServiceCollection services, IConfiguration config)
-    {
-        var connectionString = BuildConnectionString(config);
-        services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
-
-        services.AddSingleton(new S3manager(
-            endpoint: Required(config, "AWS_ENDPOINT_URL_S3"),
-            region: Required(config, "AWS_DEFAULT_REGION"),
-            accessKey: Required(config, "AWS_ACCESS_KEY_ID"),
-            secretKey: Required(config, "AWS_SECRET_ACCESS_KEY"),
-            bucket: Required(config, "S3_BUCKET")));
-    }
-
-    private static string BuildConnectionString(IConfiguration config) =>
+    private static string BuildPostgresConnectionString(IConfiguration config) =>
         new NpgsqlConnectionStringBuilder
         {
             Host = Required(config, "POSTGRES_HOST"),
@@ -70,6 +68,7 @@ public class Program
             Database = Required(config, "POSTGRES_DB"),
             Username = Required(config, "POSTGRES_USER"),
             Password = Required(config, "POSTGRES_PASSWORD"),
+            MaxPoolSize = 40,
         }.ConnectionString;
 
     private static string Required(IConfiguration config, string key) =>

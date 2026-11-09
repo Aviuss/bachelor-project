@@ -1,4 +1,4 @@
-namespace Master.Endpoints;
+namespace Master.Endpoints.Public;
 
 public static class PublicEndpoints
 {

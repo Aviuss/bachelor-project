@@ -10,3 +10,9 @@ GET {{Agent_HostAddress}}/agent/v1/ping
 Accept: application/json
 
 ###
+
+POST {{Agent_HostAddress}}/agent/v1/heartbeat
+Accept: application/json
+Authorization: Bearer TOKEN_FROM_ADD_MACHINE
+
+###
