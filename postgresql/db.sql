@@ -67,7 +67,7 @@ CREATE TABLE job_attempts (
 	cpu          numeric(5,2) NOT NULL CHECK (cpu > 0),
 	timeout_s    int    NOT NULL CHECK (timeout_s > 0),
 	machine_id   uuid   REFERENCES machines(id),
-	progress     smallint CHECK (progress BETWEEN 0 AND 100),
+	progress     smallint CHECK (progress BETWEEN 0 AND 100), // NULL = no info
 	peak_mem_mb  int,
 	cpu_seconds  double precision,
 	error        text,
@@ -85,7 +85,6 @@ CREATE TABLE resources (
 	producer_io_id  int     REFERENCES job_type_io(id),
 	produced_by     int     REFERENCES job_attempts(id),
 	original_name   text,
-	content_type    text    NOT NULL DEFAULT 'application/octet-stream',
 	compressed      boolean NOT NULL DEFAULT false,
 	size_bytes      bigint  CHECK (size_bytes >= 0),
 	sha256          bytea   CHECK (octet_length(sha256) = 32),
@@ -96,28 +95,12 @@ CREATE TABLE resources (
 	CHECK (produced_by IS NULL OR producer_job_id IS NOT NULL)
 );
 
-CREATE TABLE job_io_resource_map (
+CREATE TABLE job_inputs (
 	job_id         int  NOT NULL REFERENCES jobs(id),
 	job_type_io_id int  NOT NULL REFERENCES job_type_io(id),
 	resource_id    uuid NOT NULL REFERENCES resources(id),
 	PRIMARY KEY (job_id, job_type_io_id)
 );
-
-CREATE VIEW job_current AS
-SELECT DISTINCT ON (a.job_id)
-	a.job_id, a.id AS attempt_id, a.status, a.progress, a.machine_id, a.error
-FROM job_attempts a
-ORDER BY a.job_id, a.id DESC;
-
-CREATE VIEW job_edges AS
-SELECT r.producer_job_id  AS from_job,
-	r.producer_io_id   AS from_io,
-	m.job_id           AS to_job,
-	m.job_type_io_id   AS to_io,
-	r.id               AS resource_id
-FROM job_io_resource_map m
-JOIN resources r ON r.id = m.resource_id
-WHERE r.producer_job_id IS NOT NULL;
 
 CREATE VIEW machines_status AS
 SELECT m.*,
