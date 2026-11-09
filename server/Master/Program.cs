@@ -1,7 +1,6 @@
-//using Amazon.Runtime;
-//using Amazon.S3;
 using Master.Endpoints;
 using Npgsql;
+using Shared;
 
 namespace Master;
 
@@ -58,15 +57,10 @@ public class Program
         }.ConnectionString;
         services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 
-/*        var s3Credentials = new BasicAWSCredentials(Required("AWS_ACCESS_KEY_ID"), Required("AWS_SECRET_ACCESS_KEY"));
-        var s3Config = new AmazonS3Config
-        {
-            ServiceURL = Required("AWS_ENDPOINT_URL_S3"),
-            AuthenticationRegion = Required("AWS_DEFAULT_REGION"),
-            ForcePathStyle = true,
-            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
-            ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
-        };
-        services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(s3Credentials, s3Config));*/
+        services.AddSingleton(new S3manager(
+            endpoint: Required("AWS_ENDPOINT_URL_S3"),
+            region: Required("AWS_DEFAULT_REGION"),
+            accessKey: Required("AWS_ACCESS_KEY_ID"),
+            secretKey: Required("AWS_SECRET_ACCESS_KEY")));
     }
 }
