@@ -27,3 +27,9 @@ sudo docker compose -f garage_s3/docker-compose-only-s3.yml down
 `garage status`
 
 more here: https://www.glukhov.org/data-infrastructure/object-storage/garage-quickstart/
+
+## Master
+
+### generating token for new machine:
+
+`dotnet run -- add-machine`
