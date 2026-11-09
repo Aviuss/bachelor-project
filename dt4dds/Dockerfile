@@ -9,5 +9,7 @@ RUN pip3 install matplotlib pandas
 
 # Ustawiamy domyślny katalog roboczy na /data, żeby nie trzeba było do niego przechodzić
 WORKDIR /data
+# Podpiąć komendą folder
+COPY ./data/dt4dds_main.py .
 
 ENTRYPOINT ["python", "dt4dds_main.py", "--"]
