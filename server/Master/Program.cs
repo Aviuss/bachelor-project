@@ -1,5 +1,6 @@
-using Amazon.Runtime;
-using Amazon.S3;
+//using Amazon.Runtime;
+//using Amazon.S3;
+using Master.Endpoints;
 using Npgsql;
 
 namespace Master;
@@ -9,6 +10,14 @@ public class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        var publicPort = builder.Configuration.GetValue("PUBLIC_API_PORT", 5080);
+        var agentPort = builder.Configuration.GetValue("AGENT_API_PORT", 5081);
+        builder.WebHost.ConfigureKestrel(kestrel =>
+        {
+            kestrel.ListenAnyIP(publicPort);
+            kestrel.ListenAnyIP(agentPort);
+        });
 
         // Add services to the container.
         builder.Services.AddAuthorization();
@@ -26,28 +35,10 @@ public class Program
             app.MapOpenApi();
         }
 
-        app.UseHttpsRedirection();
-
         app.UseAuthorization();
 
-        var summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-        {
-            var forecast =  Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                {
-                    Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    TemperatureC = Random.Shared.Next(-20, 55),
-                    Summary = summaries[Random.Shared.Next(summaries.Length)]
-                })
-                .ToArray();
-            return forecast;
-        })
-        .WithName("GetWeatherForecast");
+        app.MapPublicApi();
+        app.MapAgentApi();
 
         app.Run();
     }
@@ -67,7 +58,7 @@ public class Program
         }.ConnectionString;
         services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
 
-        var s3Credentials = new BasicAWSCredentials(Required("AWS_ACCESS_KEY_ID"), Required("AWS_SECRET_ACCESS_KEY"));
+/*        var s3Credentials = new BasicAWSCredentials(Required("AWS_ACCESS_KEY_ID"), Required("AWS_SECRET_ACCESS_KEY"));
         var s3Config = new AmazonS3Config
         {
             ServiceURL = Required("AWS_ENDPOINT_URL_S3"),
@@ -76,6 +67,6 @@ public class Program
             RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
             ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
         };
-        services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(s3Credentials, s3Config));
+        services.AddSingleton<IAmazonS3>(_ => new AmazonS3Client(s3Credentials, s3Config));*/
     }
 }

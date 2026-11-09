@@ -1,6 +1,12 @@
-@Master_HostAddress = http://localhost:5080
+@Public_HostAddress = http://localhost:5080
+@Agent_HostAddress = http://localhost:5081
 
-GET {{Master_HostAddress}}/weatherforecast/
+GET {{Public_HostAddress}}/api/ping
+Accept: application/json
+
+###
+
+GET {{Agent_HostAddress}}/agent/v1/ping
 Accept: application/json
 
 ###
