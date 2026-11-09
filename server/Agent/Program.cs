@@ -3,8 +3,8 @@ using System.Data;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-//using Docker.DotNet;
-//using Docker.DotNet.Models;
+using Docker.DotNet;
+using Docker.DotNet.Models;
 
 namespace Agent;
 
@@ -23,7 +23,7 @@ public class Program
 
 class Runner : IDisposable
 {
-  //  private readonly DockerClient _client;
+    private readonly DockerClient _client;
     private string? _containerId;
 
     public string ImageName { get; set; }
@@ -44,7 +44,7 @@ class Runner : IDisposable
             ? new Uri("npipe://./pipe/docker_engine")
             : new Uri("unix:///var/run/docker.sock");
 
-    //    _client = new DockerClientConfiguration(uri).CreateClient();
+        _client = new DockerClientBuilder().WithEndpoint(uri).Build();
     }
 
 
@@ -84,22 +84,22 @@ class Runner : IDisposable
         Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfigIn} i {bindConfigOut}");
 
 
-      //  var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
-       // {
-       //     Image = ImageName,
-        //    Cmd = new[] {"cat", "app/output/tekst.txt"},
-       //     HostConfig = new HostConfig
-        //    {
-         //       Binds = new[] { bindConfigIn, bindConfigOut }
-         //   }
-        //});
+        var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
+        {
+            Image = ImageName,
+            Cmd = new[] {"cat", "app/output/tekst.txt"},
+            HostConfig = new HostConfig
+            {
+                Binds = new[] { bindConfigIn, bindConfigOut }
+            }
+        });
 
-        //_containerId = response.ID;
+        _containerId = response.ID;
     
         if (string.IsNullOrEmpty(_containerId))
             throw new InvalidOperationException("Kontener nie został utworzony.");
 
-        //await _client.Containers.StartContainerAsync(_containerId, new ContainerStartParameters());
+        await _client.Containers.StartContainerAsync(_containerId, new ContainerStartParameters());
         Console.WriteLine("[Docker] Kontener wystartował.");
     }
 
@@ -108,24 +108,23 @@ class Runner : IDisposable
         if (string.IsNullOrEmpty(_containerId))
             throw new InvalidOperationException("Kontener nie istnieje.");
 
-        // /await _client.Containers.WaitContainerAsync(_containerId);
+        await _client.Containers.WaitContainerAsync(_containerId);
 
-        /*using var multiplexedStream = await _client.Containers.GetContainerLogsAsync(
+        using var multiplexedStream = await _client.Containers.GetContainerLogsAsync(
             _containerId,
-            false,
             new ContainerLogsParameters
             {
                 ShowStdout = true,
                 ShowStderr = true
             },
             CancellationToken.None
-        );*/
+        );
 
-        //var (stdout, stderr) = await multiplexedStream.ReadOutputToEndAsync(CancellationToken.None);
+        var (stdout, stderr) = await multiplexedStream.ReadOutputToEndAsync(CancellationToken.None);
 
         Console.WriteLine("\n--- Wynik wykonania w kontenerze ---");
-        //if (!string.IsNullOrEmpty(stdout)) Console.WriteLine($"STDOUT: {stdout.Trim()}");
-        //if (!string.IsNullOrEmpty(stderr)) Console.WriteLine($"STDERR: {stderr.Trim()}");
+        if (!string.IsNullOrEmpty(stdout)) Console.WriteLine($"STDOUT: {stdout.Trim()}");
+        if (!string.IsNullOrEmpty(stderr)) Console.WriteLine($"STDERR: {stderr.Trim()}");
         Console.WriteLine("------------------------------------\n");
     }
 
@@ -133,7 +132,7 @@ class Runner : IDisposable
     {
         if (!string.IsNullOrEmpty(_containerId))
         {
-            //await _client.Containers.RemoveContainerAsync(_containerId, new ContainerRemoveParameters { Force = true });
+            await _client.Containers.RemoveContainerAsync(_containerId, new ContainerRemoveParameters { Force = true });
             Console.WriteLine("[Docker] Kontener usunięty.");
             _containerId = null;
         }
@@ -141,7 +140,7 @@ class Runner : IDisposable
 
     public void Dispose()
     {
-        // /_client.Dispose();
+        _client.Dispose();
     }
 
 }
