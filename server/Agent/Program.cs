@@ -15,9 +15,6 @@ public class Program
         string job_id = "123456789";
         using var runner = new Runner(job_id, "alpine:3.20", "{\"processes\"...");
         runner.PrepareFolders(); //aby stworzylo plik config.json i wczytalo parametry
-        //await runner.PrintImages();
-        //await runner.RunByImageNameAsync("dt4dds-custom");
-        await runner.CreateContainerAsync();
         await runner.RunAsync();
         await runner.VerifyLogsAsync();
         await runner.CleanupAsync();
@@ -51,32 +48,6 @@ class Runner : IDisposable
     }
 
 
-    public async Task PrintImages()
-    {
-        IList<ImagesListResponse> images = await _client.Images.ListImagesAsync(
-            new ImagesListParameters
-            {
-                All = true // true uwzględnia również obrazy pośrednie/dangling
-            });
-
-        foreach (var image in images)
-        {
-
-            if (image.RepoTags != null && image.RepoTags.Count > 0)
-            {
-                Console.WriteLine("Tagi: " + string.Join(", ", image.RepoTags));
-            }
-            else
-            {
-                Console.WriteLine("Tagi: <brak tagu / dangling>");
-            }
-
-            Console.WriteLine(new string('-', 40));
-        }
-    }
-  
-
-
     public void PrepareFolders() 
     { 
         string project_folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..");
@@ -99,7 +70,7 @@ class Runner : IDisposable
     }
 
 
-    public async Task CreateContainerAsync()
+    public async Task RunAsync()
     {
         string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
         string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
@@ -111,15 +82,6 @@ class Runner : IDisposable
         string bindConfigOut = $"{absoluteOutputPath}:{containerOutputDir}:rw";
 
         Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfigIn} i {bindConfigOut}");
-
-        /*await _client.Images.CreateImageAsync(
-            new ImagesCreateParameters { FromImage = ImageName },
-            null,
-            new Progress<JSONMessage>(m =>
-            {
-                if (!string.IsNullOrEmpty(m.Status)) Console.WriteLine($"[Pull] {m.Status}");
-            })
-        );*/
 
 
         var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
@@ -133,10 +95,7 @@ class Runner : IDisposable
         });
 
         _containerId = response.ID;
-    }
-
-    public async Task RunAsync()
-    {
+    
         if (string.IsNullOrEmpty(_containerId))
             throw new InvalidOperationException("Kontener nie został utworzony.");
 
