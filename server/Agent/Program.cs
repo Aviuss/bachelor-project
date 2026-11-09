@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,12 +12,10 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        using var runner = new Runner("alpine:3.20", "./input");
-        //runner.PrepareTestData("Witaj z zamontowanego folderu!");
-        //await runner.PrintImages();
-        await runner.RunByImageNameAsync("dt4dds-custom");
-       // await runner.CreateContainerWithMountAsync();
-       // await runner.RunAsync();
+        string job_id = "123456789";
+        using var runner = new Runner(job_id, "alpine:3.20", "{\"processes\"...");
+        runner.PrepareFolders(); //aby stworzylo plik config.json i wczytalo parametry
+        await runner.RunAsync();
         await runner.VerifyLogsAsync();
         await runner.CleanupAsync();
     }
@@ -28,12 +27,18 @@ class Runner : IDisposable
     private string? _containerId;
 
     public string ImageName { get; set; }
-    public string InputPath { get; set; }
+    public string? InputPath { get; set; }
+    public string? OutputPath { get; set; }
 
-    public Runner(string imageName = "alpine:3.20", string inputPath = "./input")
+    public string JobId;
+
+    public string Parameters;
+
+    public Runner (string jobId, string imageName, string parameters)
     {
         ImageName = imageName;
-        InputPath = inputPath;
+        JobId = jobId;
+        Parameters = parameters;
 
         var uri = OperatingSystem.IsWindows()
             ? new Uri("npipe://./pipe/docker_engine")
@@ -43,70 +48,54 @@ class Runner : IDisposable
     }
 
 
-    public async Task PrintImages()
-    {
-        IList<ImagesListResponse> images = await _client.Images.ListImagesAsync(
-            new ImagesListParameters
-            {
-                All = true // true uwzględnia również obrazy pośrednie/dangling
-            });
+    public void PrepareFolders() 
+    { 
+        string project_folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..");
+        string path = Path.Combine(project_folder, JobId);
+        string inputFolder = Path.Combine(path, "input");
+        string outputFolder = Path.Combine(path, "output");
 
-        foreach (var image in images)
-        {
+    
+        Directory.CreateDirectory(inputFolder);
+        Directory.CreateDirectory(outputFolder);
 
-            if (image.RepoTags != null && image.RepoTags.Count > 0)
-            {
-                Console.WriteLine("Tagi: " + string.Join(", ", image.RepoTags));
-            }
-            else
-            {
-                Console.WriteLine("Tagi: <brak tagu / dangling>");
-            }
+        // Aktualizujemy InputPath, aby CreateContainerWithMountAsync wiedział, skąd montować pliki
+        InputPath = inputFolder;
+        OutputPath = outputFolder;
 
-            Console.WriteLine(new string('-', 40));
-        }
-    }
-  
-    public void PrepareTestData(string content)
-    {
-        Directory.CreateDirectory(InputPath);
-        File.WriteAllText(Path.Combine(InputPath, "test.txt"), content);
-        Console.WriteLine($"[Host] Zapisano plik testowy w: {Path.GetFullPath(InputPath)}");
+        string configFile = Path.Combine(inputFolder, "config.json");
+        File.WriteAllText(configFile, Parameters);
+
+        Console.WriteLine($"Utworzono strukturę folderów dla id {JobId}");
     }
 
-    public async Task CreateContainerWithMountAsync()
+
+    public async Task RunAsync()
     {
-        string absoluteHostPath = Path.GetFullPath(InputPath).Replace("\\", "/");
-        const string containerTargetDir = "/app/input";
-        string bindConfig = $"{absoluteHostPath}:{containerTargetDir}:ro";
-        
+        string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
+        string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
 
-        Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfig}");
+        const string containerInputDir = "/app/input";
+        const string containerOutputDir = "/app/output";
 
-        await _client.Images.CreateImageAsync(
-            new ImagesCreateParameters { FromImage = ImageName },
-            null,
-            new Progress<JSONMessage>(m =>
-            {
-                if (!string.IsNullOrEmpty(m.Status)) Console.WriteLine($"[Pull] {m.Status}");
-            })
-        );
+        string bindConfigIn = $"{absoluteInputPath}:{containerInputDir}:ro";
+        string bindConfigOut = $"{absoluteOutputPath}:{containerOutputDir}:rw";
+
+        Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfigIn} i {bindConfigOut}");
+
 
         var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
         {
             Image = ImageName,
-            Cmd = new[] { "cat", $"{containerTargetDir}/test.txt" },
+            Cmd = new[] {"cat", "app/output/tekst.txt"},
             HostConfig = new HostConfig
             {
-                Binds = new[] { bindConfig }
+                Binds = new[] { bindConfigIn, bindConfigOut }
             }
         });
 
         _containerId = response.ID;
-    }
-
-    public async Task RunAsync()
-    {
+    
         if (string.IsNullOrEmpty(_containerId))
             throw new InvalidOperationException("Kontener nie został utworzony.");
 
@@ -155,54 +144,6 @@ class Runner : IDisposable
         _client.Dispose();
     }
 
-
-    public async Task RunByImageNameAsync(string targetImageName)
-    {
-        // 1. Pobierz listę lokalnych obrazów
-        var images = await _client.Images.ListImagesAsync(new ImagesListParameters { All = false });
-
-        // 2. Sprawdź, czy targetImageName znajduje się na liście tagów
-        // Jeśli użytkownik podał np. "alpine", Docker traktuje to jako "alpine:latest"
-        string normalizedTarget = targetImageName.Contains(':') 
-            ? targetImageName 
-            : $"{targetImageName}:latest";
-
-        bool existsLocally = images.Any(img => 
-            img.RepoTags != null && 
-            img.RepoTags.Contains(normalizedTarget, StringComparer.OrdinalIgnoreCase));
-
-        // 3. Jeśli nie ma lokalnie – pobierz z rejestru
-        if (!existsLocally)
-        {
-            Console.WriteLine($"[Docker] Obraz '{normalizedTarget}' nie istnieje lokalnie. Pobieranie...");
-            
-            await _client.Images.CreateImageAsync(
-                new ImagesCreateParameters { FromImage = normalizedTarget },
-                null,
-                new Progress<JSONMessage>(m =>
-                {
-                    if (!string.IsNullOrEmpty(m.Status))
-                        Console.WriteLine($"[Pull] {m.Status}");
-                })
-            );
-        }
-        else
-        {
-            Console.WriteLine($"[Docker] Obraz '{normalizedTarget}' znaleziony lokalnie.");
-        }
-
-        // 4. Utwórz i uruchom kontener
-        var createResponse = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
-        {
-            Image = normalizedTarget,
-            Cmd = new[] { "echo", $"Wystartowano z obrazu: {normalizedTarget}" }
-        });
-
-        _containerId = createResponse.ID;
-
-        await _client.Containers.StartContainerAsync(_containerId, new ContainerStartParameters());
-        Console.WriteLine($"[Docker] Kontener {_containerId[..12]} wystartował pomyślnie.");
-    }
 }
 
 
