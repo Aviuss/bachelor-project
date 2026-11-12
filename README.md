@@ -33,3 +33,10 @@ more here: https://www.glukhov.org/data-infrastructure/object-storage/garage-qui
 ### generating token for new machine:
 
 `dotnet run -- add-machine`
+
+## Agent
+
+```
+cd server/Agent
+MASTER_AGENT_URL=http://localhost:5081 AGENT_TOKEN='<token>' dotnet run
+```
