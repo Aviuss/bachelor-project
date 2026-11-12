@@ -69,7 +69,7 @@ CREATE TABLE job_attempts (
 	cpu          numeric(5,2) NOT NULL CHECK (cpu > 0),
 	timeout_s    int          NOT NULL CHECK (timeout_s > 0),
 	machine_id   uuid         REFERENCES machines(id),
-	progress     smallint     CHECK (progress BETWEEN 0 AND 100), // NULL = no info
+	progress     smallint     CHECK (progress BETWEEN 0 AND 100),
 	peak_mem_mb  int,
 	cpu_seconds  double precision,
 	error        text,
@@ -99,7 +99,7 @@ CREATE TABLE resources (
 
 CREATE TABLE resource_jsonb (
     id    uuid  PRIMARY KEY REFERENCES resources(id),
-    value jsonb NOT NULL,
+    value jsonb NOT NULL
 )
 
 CREATE TABLE job_inputs (
