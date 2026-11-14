@@ -26,18 +26,13 @@ CREATE TABLE resource_formats (
 	name        text              NOT NULL UNIQUE
 );
 
-CREATE TABLE resource_location (
-	id          int               GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	location_id resource_location NOT NULL
-);
-
 CREATE TABLE job_type_io (
-	id          int          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	job_type_id int          NOT NULL REFERENCES job_types(id),
-	direction   io_direction NOT NULL,
-	name        text         NOT NULL,
-	format_id   int          NOT NULL REFERENCES resource_formats(id),
-	location_id int          NOT NULL REFERENCES resource_location(id),
+	id          int               GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	job_type_id int               NOT NULL REFERENCES job_types(id),
+	direction   io_direction      NOT NULL,
+	name        text              NOT NULL,
+	format_id   int               NOT NULL REFERENCES resource_formats(id),
+	location_id resource_location NOT NULL,
 	UNIQUE (job_type_id, direction, name, format_id)
 );
 
