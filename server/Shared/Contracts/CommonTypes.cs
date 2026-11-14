@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Shared.Contracts;
 
-public enum Direction
+public enum ResourceDirection
 {
     Input,
     Output
@@ -22,7 +22,7 @@ public enum ResourceLocation
 }
 
 
-public abstract record Resource(Guid ResourceId, Direction Direction, ResourceFormat ResourceFormat, ResourceLocation ResourceLocation);
+public abstract record Resource(Guid ResourceId, ResourceDirection Direction, ResourceFormat ResourceFormat, ResourceLocation ResourceLocation);
 
 
 public record Assignment(int AttemptId, int JobTypeId, string ParamsJson, IReadOnlyCollection<Resource> Resources);

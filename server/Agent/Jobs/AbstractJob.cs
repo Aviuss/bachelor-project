@@ -23,8 +23,8 @@ public abstract class AbstractJob
         this.ParamsJson = assignment.ParamsJson;
         
         var byDir = assignment.Resources.ToLookup(r => r.Direction);
-        this.InputResources = byDir[Direction.Input].ToList();
-        this.OutputResources = byDir[Direction.Output].ToList();
+        this.InputResources = byDir[ResourceDirection.Input].ToList();
+        this.OutputResources = byDir[ResourceDirection.Output].ToList();
     }
 
     public abstract void PreRun();
