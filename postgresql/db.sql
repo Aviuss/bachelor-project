@@ -9,7 +9,7 @@ CREATE TYPE job_status AS ENUM (
 );
 CREATE TYPE resource_status   AS ENUM ('pending','available','failed','deleted');
 CREATE TYPE io_direction      AS ENUM ('in','out');
-CREATE TYPE resource_location AS ENUM ('s3', 'db_jsonb');
+CREATE TYPE resource_location AS ENUM ('s3', 'db');
 
 CREATE TABLE pipeline_types (
 	id   int  GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -23,8 +23,12 @@ CREATE TABLE job_types (
 
 CREATE TABLE resource_formats (
 	id          int               GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-	name        text              NOT NULL UNIQUE,
-    location_id resource_location NOT NULL
+	name        text              NOT NULL UNIQUE
+);
+
+CREATE TABLE resource_location (
+	id          int               GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+	location_id resource_location NOT NULL
 );
 
 CREATE TABLE job_type_io (
@@ -33,7 +37,8 @@ CREATE TABLE job_type_io (
 	direction   io_direction NOT NULL,
 	name        text         NOT NULL,
 	format_id   int          NOT NULL REFERENCES resource_formats(id),
-	UNIQUE (job_type_id, direction, name)
+	location_id int          NOT NULL REFERENCES resource_location(id),
+	UNIQUE (job_type_id, direction, name, format_id)
 );
 
 CREATE TABLE machines (
