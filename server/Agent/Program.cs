@@ -33,12 +33,17 @@ public class Program
 
     private static async Task RunDockerTestAsync()
     {
-        string job_id = "123456789";
-        using var runner = new Jobs.DockerRunner(job_id, "alpine:3.20", "{\"processes\"...");
-        runner.PrepareFolders(); //aby stworzylo plik config.json i wczytalo parametry
-        await runner.RunAsync();
-        await runner.VerifyLogsAsync();
-        await runner.CleanupAsync();
+        var assignment = new Shared.Contracts.Assignment(
+            JobId: 1,
+            AttemptId: 123456789,
+            JobTypeId: 1,
+            ParamsJson: "{\"processes\"...",
+            Resources: []);
+
+        await Runner.RunnerFactory.RunAsync(assignment);
+
+        var run = Runner.RunnerFactory.Runs[(assignment.JobId, assignment.AttemptId)];
+        Console.WriteLine($"Status: {run.Status}, zakończone: {run.IsFinished}");
     }
 }
 
