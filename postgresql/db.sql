@@ -100,7 +100,7 @@ CREATE TABLE resources (
 CREATE TABLE resource_jsonb (
     id    uuid  PRIMARY KEY REFERENCES resources(id),
     value jsonb NOT NULL
-)
+);
 
 CREATE TABLE job_inputs (
 	job_id         int  NOT NULL REFERENCES jobs(id),
