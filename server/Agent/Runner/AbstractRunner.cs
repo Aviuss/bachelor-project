@@ -6,14 +6,6 @@ using Shared.Contracts;
 
 namespace Agent.Runner;
 
-public enum RunStatus
-{
-    Assigned,
-    Running,
-    Succeeded,
-    Failed
-}
-
 public abstract class AbstractRunner : IDisposable
 {
     public RunStatus Status { get; private set; } = RunStatus.Assigned;
@@ -29,7 +21,7 @@ public abstract class AbstractRunner : IDisposable
     protected IReadOnlyCollection<Resource> InputResources { get; }
 
     private readonly List<Resource> _outputResources;
-    protected IReadOnlyList<Resource> OutputResources => _outputResources;
+    public IReadOnlyList<Resource> OutputResources => _outputResources;
 
     protected string? InputPath { get; private set; }
     protected string? OutputPath { get; private set; }
@@ -217,6 +209,7 @@ public abstract class AbstractRunner : IDisposable
 
         Status = RunStatus.Running;
         StartedAt = DateTimeOffset.UtcNow;
+        await Task.Yield();
 
         Exception? error = null;
         try

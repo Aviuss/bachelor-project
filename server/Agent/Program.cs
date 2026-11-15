@@ -24,7 +24,8 @@ public class Program
         using var onInterrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Stop);
         using var onTerminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, Stop);
 
-        using var heartbeat = new HeartbeatClient(Required("MASTER_AGENT_URL"), Required("AGENT_TOKEN"));
+        var runners = new Runner.RunnerFactory(CreateS3Manager());
+        using var heartbeat = new HeartbeatClient(Required("MASTER_AGENT_URL"), Required("AGENT_TOKEN"), runners);
         await heartbeat.RunAsync(stopping.Token);
     }
 
