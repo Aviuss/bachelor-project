@@ -31,6 +31,13 @@ public class Program
     private static string Required(string name) =>
         Environment.GetEnvironmentVariable(name) ?? throw new InvalidOperationException($"{name} is not configured.");
 
+    private static Shared.S3manager CreateS3Manager() => new(
+        endpoint: Required("AWS_ENDPOINT_URL_S3"),
+        region: Required("AWS_DEFAULT_REGION"),
+        accessKey: Required("AWS_ACCESS_KEY_ID"),
+        secretKey: Required("AWS_SECRET_ACCESS_KEY"),
+        bucket: Required("S3_BUCKET"));
+
     private static async Task RunDockerTestAsync()
     {
         var assignment = new Shared.Contracts.Assignment(
@@ -40,9 +47,10 @@ public class Program
             ParamsJson: "{\"processes\"...",
             Resources: []);
 
-        await Runner.RunnerFactory.RunAsync(assignment);
+        var runners = new Runner.RunnerFactory(CreateS3Manager());
+        await runners.RunAsync(assignment);
 
-        var run = Runner.RunnerFactory.Runs[(assignment.JobId, assignment.AttemptId)];
+        var run = runners.Runs[(assignment.JobId, assignment.AttemptId)];
         Console.WriteLine($"Status: {run.Status}, zakończone: {run.IsFinished}");
     }
 }

@@ -27,12 +27,12 @@ public class S3manager
         this.bucket = bucket;
     }
 
-    public Task downloadResource(string key, string locationTo, string name) =>
+    public Task DownloadResource(string key, string locationTo, string name) =>
         transfer.DownloadAsync(Path.Combine(locationTo, name), bucket, key);
 
-    public Task writeResource(string key, string locationFrom, string name) =>
+    public Task WriteResource(string key, string locationFrom, string name) =>
         transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key);
 
-    public Task deleteResource(string key) =>
+    public Task DeleteResource(string key) =>
         Client.DeleteObjectAsync(bucket, key);
 }
