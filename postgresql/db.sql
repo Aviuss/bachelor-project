@@ -1,4 +1,4 @@
-CREATE TYPE job_status AS ENUM (
+CREATE TYPE attempt_status AS ENUM (
     'pending',
     'ready',
 	'assigned',
@@ -64,7 +64,7 @@ CREATE TABLE jobs (
 CREATE TABLE job_attempts (
 	id           int          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	job_id       int          NOT NULL REFERENCES jobs(id),
-	status       job_status   NOT NULL DEFAULT 'pending',
+	status       attempt_status NOT NULL DEFAULT 'pending',
 	mem_mb       int          NOT NULL CHECK (mem_mb > 0),
 	cpu          numeric(5,2) NOT NULL CHECK (cpu > 0),
 	timeout_s    int          NOT NULL CHECK (timeout_s > 0),
