@@ -1,4 +1,5 @@
 using Dapper;
+using Master.Pipelines;
 using Npgsql;
 using Shared.Contracts;
 
@@ -52,7 +53,7 @@ public static class AttemptReports
             await connection.ExecuteAsync(
                 """
                 UPDATE job_attempts
-                SET status = @Status::job_status,
+                SET status = @Status::attempt_status,
                     error = @Error,
                     started_at = COALESCE(started_at, @StartedAt),
                     finished_at = COALESCE(@FinishedAt, now())
@@ -67,6 +68,8 @@ public static class AttemptReports
                     FinishedAt = report.FinishedAt?.ToUniversalTime(),
                 },
                 transaction);
+
+            await JobReadiness.UpdateAsync(connection, transaction);
         }
 
         await transaction.CommitAsync();
