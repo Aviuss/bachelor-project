@@ -11,8 +11,10 @@ public class RunnerFactory
 {
     private static readonly Dictionary<int, Func<Assignment, AbstractRunner>> RunnerDefinitions = new()
     { // JobTypeId : creates AbstractRunner
-        [1] = a => new DockerRunner(a, "alpine:3.20"),
-        [2] = a => new CopyConfigJob(a),
+        [JobTypes.DockerAlpine] = a => new DockerRunner(a, "alpine:3.20"),
+        [JobTypes.CopyConfig] = a => new CopyConfigJob(a),
+        [JobTypes.AppendText] = a => new AppendTextJob(a),
+        [JobTypes.PrependText] = a => new PrependTextJob(a),
     };
 
     private readonly S3manager _s3;

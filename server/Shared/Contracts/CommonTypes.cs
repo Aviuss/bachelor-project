@@ -80,6 +80,14 @@ public enum RunStatus
     Failed
 }
 
+public static class JobTypes
+{
+    public const int DockerAlpine = 1;
+    public const int CopyConfig = 2;
+    public const int AppendText = 3;
+    public const int PrependText = 4;
+}
+
 
 public record Assignment(int JobId, int AttemptId, int JobTypeId, string ParamsJson, IReadOnlyCollection<Resource> Resources);
 
