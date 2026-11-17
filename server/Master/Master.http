@@ -10,3 +10,34 @@ GET {{Agent_HostAddress}}/agent/v1/ping
 Accept: application/json
 
 ###
+
+POST {{Agent_HostAddress}}/agent/v1/heartbeat
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer TOKEN_FROM_ADD_MACHINE
+
+{"reports": []}
+
+###
+
+POST {{Public_HostAddress}}/api/requests
+Accept: application/json
+Content-Type: application/json
+
+{
+  "pipelineType": "text-wrap",
+  "email": null,
+  "params": {
+    "append": { "text": " <<<" },
+    "prepend": { "text": ">>> " }
+  }
+}
+
+###
+
+PUT {{Public_HostAddress}}/api/requests/1383c281-bf38-45f4-a474-df7d4a131ac3/uploads/b94e6c18-3944-45cb-82c1-000a05cb0e0d?fileName=hello.txt
+Content-Type: text/plain
+
+Hello world
+
+###

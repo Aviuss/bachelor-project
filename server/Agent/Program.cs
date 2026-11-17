@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using Docker.DotNet;
-using Docker.DotNet.Models;
+using System.Runtime.InteropServices;
 
 namespace Agent;
 
@@ -12,137 +9,52 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        string job_id = "123456789";
-        using var runner = new Runner(job_id, "alpine:3.20", "{\"processes\"...");
-        runner.PrepareFolders(); //aby stworzylo plik config.json i wczytalo parametry
-        await runner.RunAsync();
-        await runner.VerifyLogsAsync();
-        await runner.CleanupAsync();
-    }
-}
-
-class Runner : IDisposable
-{
-    private readonly DockerClient _client;
-    private string? _containerId;
-
-    public string ImageName { get; set; }
-    public string? InputPath { get; set; }
-    public string? OutputPath { get; set; }
-
-    public string JobId;
-
-    public string Parameters;
-
-    public Runner (string jobId, string imageName, string parameters)
-    {
-        ImageName = imageName;
-        JobId = jobId;
-        Parameters = parameters;
-
-        var uri = OperatingSystem.IsWindows()
-            ? new Uri("npipe://./pipe/docker_engine")
-            : new Uri("unix:///var/run/docker.sock");
-
-        _client = new DockerClientBuilder().WithEndpoint(uri).Build();
-    }
-
-
-    public void PrepareFolders() 
-    { 
-        string project_folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..");
-        string path = Path.Combine(project_folder, JobId);
-        string inputFolder = Path.Combine(path, "input");
-        string outputFolder = Path.Combine(path, "output");
-
-    
-        Directory.CreateDirectory(inputFolder);
-        Directory.CreateDirectory(outputFolder);
-
-        // Aktualizujemy InputPath, aby CreateContainerWithMountAsync wiedział, skąd montować pliki
-        InputPath = inputFolder;
-        OutputPath = outputFolder;
-
-        string configFile = Path.Combine(inputFolder, "config.json");
-        File.WriteAllText(configFile, Parameters);
-
-        Console.WriteLine($"Utworzono strukturę folderów dla id {JobId}");
-    }
-
-
-    public async Task RunAsync()
-    {
-        string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
-        string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
-
-        const string containerInputDir = "/app/input";
-        const string containerOutputDir = "/app/output";
-
-        string bindConfigIn = $"{absoluteInputPath}:{containerInputDir}:ro";
-        string bindConfigOut = $"{absoluteOutputPath}:{containerOutputDir}:rw";
-
-        Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfigIn} i {bindConfigOut}");
-
-
-        var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
+        if (args is ["docker-test"])
         {
-            Image = ImageName,
-            Cmd = new[] {"cat", "app/output/tekst.txt"},
-            HostConfig = new HostConfig
-            {
-                Binds = new[] { bindConfigIn, bindConfigOut }
-            }
-        });
-
-        _containerId = response.ID;
-    
-        if (string.IsNullOrEmpty(_containerId))
-            throw new InvalidOperationException("Kontener nie został utworzony.");
-
-        await _client.Containers.StartContainerAsync(_containerId, new ContainerStartParameters());
-        Console.WriteLine("[Docker] Kontener wystartował.");
-    }
-
-    public async Task VerifyLogsAsync()
-    {
-        if (string.IsNullOrEmpty(_containerId))
-            throw new InvalidOperationException("Kontener nie istnieje.");
-
-        await _client.Containers.WaitContainerAsync(_containerId);
-
-        using var multiplexedStream = await _client.Containers.GetContainerLogsAsync(
-            _containerId,
-            new ContainerLogsParameters
-            {
-                ShowStdout = true,
-                ShowStderr = true
-            },
-            CancellationToken.None
-        );
-
-        var (stdout, stderr) = await multiplexedStream.ReadOutputToEndAsync(CancellationToken.None);
-
-        Console.WriteLine("\n--- Wynik wykonania w kontenerze ---");
-        if (!string.IsNullOrEmpty(stdout)) Console.WriteLine($"STDOUT: {stdout.Trim()}");
-        if (!string.IsNullOrEmpty(stderr)) Console.WriteLine($"STDERR: {stderr.Trim()}");
-        Console.WriteLine("------------------------------------\n");
-    }
-
-    public async Task CleanupAsync()
-    {
-        if (!string.IsNullOrEmpty(_containerId))
-        {
-            await _client.Containers.RemoveContainerAsync(_containerId, new ContainerRemoveParameters { Force = true });
-            Console.WriteLine("[Docker] Kontener usunięty.");
-            _containerId = null;
+            await RunDockerTestAsync();
+            return;
         }
+
+        using var stopping = new CancellationTokenSource();
+        void Stop(PosixSignalContext context)
+        {
+            context.Cancel = true;
+            stopping.Cancel();
+        }
+        using var onInterrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Stop);
+        using var onTerminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, Stop);
+
+        var runners = new Runner.RunnerFactory(CreateS3Manager());
+        using var heartbeat = new HeartbeatClient(Required("MASTER_AGENT_URL"), Required("AGENT_TOKEN"), runners);
+        await heartbeat.RunAsync(stopping.Token);
     }
 
-    public void Dispose()
+    private static string Required(string name) =>
+        Environment.GetEnvironmentVariable(name) ?? throw new InvalidOperationException($"{name} is not configured.");
+
+    private static Shared.S3manager CreateS3Manager() => new(
+        endpoint: Required("AWS_ENDPOINT_URL_S3"),
+        region: Required("AWS_DEFAULT_REGION"),
+        accessKey: Required("AWS_ACCESS_KEY_ID"),
+        secretKey: Required("AWS_SECRET_ACCESS_KEY"),
+        bucket: Required("S3_BUCKET"));
+
+    private static async Task RunDockerTestAsync()
     {
-        _client.Dispose();
-    }
+        var assignment = new Shared.Contracts.Assignment(
+            JobId: 1,
+            AttemptId: 123456789,
+            JobTypeId: 1,
+            ParamsJson: "{\"processes\"...",
+            Resources: []);
 
+        var runners = new Runner.RunnerFactory(CreateS3Manager());
+        await runners.RunAsync(assignment);
+
+        var run = runners.Runs[(assignment.JobId, assignment.AttemptId)];
+        Console.WriteLine($"Status: {run.Status}, zakończone: {run.IsFinished}");
+    }
 }
+
 
 

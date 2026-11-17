@@ -1,18 +1,13 @@
 # bachelor-project
 
-## running code
+## setting up postgres and s3
 
 ```
 sudo docker compose -f postgresql/docker-compose-only-db.yml up -d
 sudo docker compose -f garage_s3/docker-compose-only-s3.yml up -d
 ```
 
-
-```
-cd server/Master
-set -a; . ../../postgresql/db.env; . ../../garage_s3/s3.env; set +a
-dotnet run
-```
+(see in Master and Agent section)
 
 Turn off docker's:
 ```
@@ -27,3 +22,24 @@ sudo docker compose -f garage_s3/docker-compose-only-s3.yml down
 `garage status`
 
 more here: https://www.glukhov.org/data-infrastructure/object-storage/garage-quickstart/
+
+## Master
+
+```
+cd ./server/Master
+set -a; source master.env; set +a
+dotnet run
+```
+
+### generating token for new machine:
+
+`dotnet run -- add-machine`
+
+## Agent
+
+```
+cd ./server/Agent
+set -a; source agent.env; set +a
+dotnet run
+```
+
