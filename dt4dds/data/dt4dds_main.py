@@ -76,6 +76,29 @@ def synthesis(config, seq_list, n_seqs, primers_0):
 
 
 # ---------------------------------------------------------------------------
+# Aging
+# ---------------------------------------------------------------------------
+def real_aging(pool):
+    aging_settings = dt4dds.settings.defaults.Aging()
+    aging_process = dt4dds.processes.Aging(
+        aging_settings(),
+        n_halflives=2,
+    )
+    pool = aging_process.process(pool)
+    pool.volume = 5
+    return pool
+
+
+def aging(config, pool):
+    # perfect aging = no aging
+    if not config["processes"]["aging"]["is_perfect"]:
+        return real_aging(pool)
+    return pool
+
+
+
+
+# ---------------------------------------------------------------------------
 # PCR
 # ---------------------------------------------------------------------------
 def perfect_pcr(pool, primers_2):
@@ -105,27 +128,6 @@ def pcr(config, pool, primers_2):
     if config["processes"]["pcr"]["is_perfect"]:
         return perfect_pcr(pool, primers_2)
     return real_pcr(pool, primers_2, n_cycles)
-
-
-# ---------------------------------------------------------------------------
-# Aging
-# ---------------------------------------------------------------------------
-def real_aging(pool):
-    aging_settings = dt4dds.settings.defaults.Aging()
-    aging_process = dt4dds.processes.Aging(
-        aging_settings(),
-        n_halflives=2,
-    )
-    pool = aging_process.process(pool)
-    pool.volume = 5
-    return pool
-
-
-def aging(config, pool):
-    # perfect aging = no aging
-    if not config["processes"]["aging"]["is_perfect"]:
-        return real_aging(pool)
-    return pool
 
 
 # ---------------------------------------------------------------------------
