@@ -9,7 +9,7 @@ INSERT INTO resource_formats (name) VALUES ('FASTA');
 INSERT INTO resource_formats (name) VALUES ('NONE');
 
 -- test pipeline
-INSERT INTO pipeline_types (name) VALUES ('test1');
+INSERT INTO pipeline_types (name) VALUES ('dna-aeon');
 
 INSERT INTO job_types (name) VALUES ('encode DNA-Aeon');
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
