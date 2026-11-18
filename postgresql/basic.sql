@@ -13,53 +13,53 @@ INSERT INTO pipeline_types (name) VALUES ('dna-aeon');
 
 INSERT INTO job_types (name) VALUES ('encode DNA-Aeon');
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'encode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'encode DNA-Aeon'),
     'in',
     'D', -- inputFileToEncode
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'encode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'encode DNA-Aeon'),
     'out',
     'encoded.fasta',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'encode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'encode DNA-Aeon'),
     'out',
     'encoded.ini',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 
 INSERT INTO job_types (name) VALUES ('decode DNA-Aeon');
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'decode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'decode DNA-Aeon'),
     'in',
     'originalData',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'decode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'decode DNA-Aeon'),
     'in',
     'encoded.fasta',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'decode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'decode DNA-Aeon'),
     'in',
     'encoded.ini',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
 INSERT INTO job_type_io (job_type_id, direction, name, format_id, location_id) VALUES (
-    (SELECT id FROM job_types WHERE name == 'decode DNA-Aeon'),
+    (SELECT id FROM job_types WHERE name = 'decode DNA-Aeon'),
     'out',
     'result',
-    (SELECT id FROM resource_formats WHERE name == 'NONE'),
+    (SELECT id FROM resource_formats WHERE name = 'NONE'),
     's3'
-)
+);
