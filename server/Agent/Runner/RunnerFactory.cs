@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using Agent.Runner.CSharp.Implementations;
-using Agent.Runner.Docker;
+using Agent.Runner.Docker.Implementations;
 using Shared;
 using Shared.Contracts;
 
@@ -11,10 +11,10 @@ public class RunnerFactory
 {
     private static readonly Dictionary<int, Func<Assignment, AbstractRunner>> RunnerDefinitions = new()
     { // JobTypeId : creates AbstractRunner
-        [JobTypes.DockerAlpine] = a => new DockerRunner(a, "alpine:3.20"),
-        [JobTypes.CopyConfig] = a => new CopyConfigJob(a),
         [JobTypes.AppendText] = a => new AppendTextJob(a),
         [JobTypes.PrependText] = a => new PrependTextJob(a),
+        [JobTypes.DnaAeonEncode] = a => new DnaAeonJob(a, DnaAeonMode.Encode),
+        [JobTypes.DnaAeonDecode] = a => new DnaAeonJob(a, DnaAeonMode.Decode),
     };
 
     private readonly S3manager _s3;
