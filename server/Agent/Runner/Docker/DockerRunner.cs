@@ -38,13 +38,13 @@ public abstract class DockerRunner : AbstractRunner
 
         
         List<string> binds = [];
-        if (InputPath is not null)
+        if (!string.IsNullOrEmpty(ContainerInputDir))
         {
             string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
             string bindConfigIn = $"{absoluteInputPath}:{ContainerInputDir}:z";
             binds.Add(bindConfigIn);            
         }
-        if (OutputPath is not null)
+        if (!string.IsNullOrEmpty(ContainerOutputDir))
         {
             string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
             string bindConfigOut = $"{absoluteOutputPath}:{ContainerOutputDir}:z";

@@ -17,7 +17,6 @@ public class DnaAeonJob : DockerRunner
     {
         _mode = mode;
 
-        Entrypoint = ["/bin/bash"];
         switch (_mode)
         {
             case DnaAeonMode.Encode:

@@ -20,7 +20,8 @@ public enum ResourceFormat
     FLOAT,
     DOUBLE,
     BOOL,
-    FASTA
+    FASTA,
+    NONE
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<ResourceLocation>))]
@@ -83,10 +84,10 @@ public enum RunStatus
 
 public static class JobTypes
 {
-    public const int AppendText = 3;
-    public const int PrependText = 4;
-    public const int DnaAeonEncode = 5;
-    public const int DnaAeonDecode = 6;
+    public const int AppendText = 311;
+    public const int PrependText = 411;
+    public const int DnaAeonEncode = 1;
+    public const int DnaAeonDecode = 2;
 }
 
 
