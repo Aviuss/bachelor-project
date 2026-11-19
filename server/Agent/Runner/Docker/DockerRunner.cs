@@ -6,13 +6,20 @@ using Docker.DotNet.Models;
 
 namespace Agent.Runner.Docker;
 
-public class DockerRunner : AbstractRunner
+public abstract class DockerRunner : AbstractRunner
 {
+    protected string? ContainerInputDir { get; set; } = null;
+    protected string? ContainerOutputDir { get; set; } = null;
+
     private readonly DockerClient _client;
 
     private readonly string _imageName;
 
-    public DockerRunner(Assignment assignment, string imageName) : base(assignment)
+    protected List<string>? Entrypoint { get; set; }
+
+    protected List<string>? Cmd { get; set; }
+
+    protected DockerRunner(Assignment assignment, string imageName) : base(assignment)
     {
         _imageName = imageName;
 
@@ -29,24 +36,31 @@ public class DockerRunner : AbstractRunner
         if (InputPath is null || OutputPath is null)
             throw new InvalidOperationException("Folders have not been prepared. Call PrepareFolders() first.");
 
-        string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
-        string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
-
-        const string containerInputDir = "/app/input";
-        const string containerOutputDir = "/app/output";
-
-        string bindConfigIn = $"{absoluteInputPath}:{containerInputDir}:ro";
-        string bindConfigOut = $"{absoluteOutputPath}:{containerOutputDir}:rw";
-
-        Console.WriteLine($"[Docker] Tworzenie kontenera z montowaniem: {bindConfigIn} i {bindConfigOut}");
-
+        
+        List<string> binds = [];
+        if (!string.IsNullOrEmpty(ContainerInputDir))
+        {
+            string absoluteInputPath = Path.GetFullPath(InputPath).Replace("\\", "/");
+            string bindConfigIn = $"{absoluteInputPath}:{ContainerInputDir}:z";
+            binds.Add(bindConfigIn);            
+        }
+        if (!string.IsNullOrEmpty(ContainerOutputDir))
+        {
+            string absoluteOutputPath = Path.GetFullPath(OutputPath).Replace("\\", "/");
+            string bindConfigOut = $"{absoluteOutputPath}:{ContainerOutputDir}:z";
+            binds.Add(bindConfigOut);
+        }
+        
+        Console.WriteLine($"[Docker] Tworzenie kontenera");
 
         var response = await _client.Containers.CreateContainerAsync(new CreateContainerParameters
         {
             Image = _imageName,
+            Entrypoint = Entrypoint ?? [],
+            Cmd = Cmd ?? [],
             HostConfig = new HostConfig
             {
-                Binds = new[] { bindConfigIn, bindConfigOut }
+                Binds = binds
             }
         });
 

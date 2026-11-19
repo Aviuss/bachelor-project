@@ -9,6 +9,7 @@ public static class PipelineFactory
     private static readonly Dictionary<string, Func<AbstractPipeline>> PipelineDefinitions = new()
     { // pipeline_types.name : creates AbstractPipeline
         ["text-wrap"] = () => new TextWrapPipeline(),
+        ["dna-aeon"] = () => new DnaAeonPipeline(),
     };
 
     public static async Task<PipelineCreated> CreateAsync(NpgsqlDataSource db, PipelineRequest request)

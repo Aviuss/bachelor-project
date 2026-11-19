@@ -39,7 +39,6 @@ dotnet run
 
 ```
 cd ./server/Agent
-set -a; source agent.env; set +a
-dotnet run
+sudo bash -c 'set -a; source agent.env; set +a; exec dotnet run'
 ```
 

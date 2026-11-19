@@ -68,6 +68,8 @@ public abstract class AbstractRunner : IDisposable
             ResourceFormat.JSON => ".json",
             ResourceFormat.TXT or ResourceFormat.INT or ResourceFormat.FLOAT or ResourceFormat.DOUBLE or ResourceFormat.BOOL => ".txt",
             ResourceFormat.BINARY => ".bin",
+            ResourceFormat.FASTA => ".fasta",
+            ResourceFormat.NONE => "",
             _ => throw new NotSupportedException($"Resource format {resource.Format} is not supported."),
         };
 

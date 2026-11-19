@@ -19,7 +19,9 @@ public enum ResourceFormat
     INT,
     FLOAT,
     DOUBLE,
-    BOOL
+    BOOL,
+    FASTA,
+    NONE
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<ResourceLocation>))]
@@ -82,10 +84,10 @@ public enum RunStatus
 
 public static class JobTypes
 {
-    public const int DockerAlpine = 1;
-    public const int CopyConfig = 2;
-    public const int AppendText = 3;
-    public const int PrependText = 4;
+    public const int AppendText = 311;
+    public const int PrependText = 411;
+    public const int DnaAeonEncode = 1;
+    public const int DnaAeonDecode = 2;
 }
 
 
