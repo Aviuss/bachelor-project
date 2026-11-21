@@ -1,0 +1,29 @@
+services:
+  s3:
+    container_name: s3
+    image: dxflrs/garage:v2.5.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3900:3900"
+      - "127.0.0.1:3903:3903"   # Admin API
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+
+  webui:
+    image: khairul169/garage-webui:latest
+    container_name: garage-webui
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+    ports:
+      - "127.0.0.1:3909:3909"
+    environment:
+      API_BASE_URL: "http://s3:3903"
+      S3_ENDPOINT_URL: "http://s3:3900"
+      #AUTH_USER_PASS: "..."
+    restart: unless-stopped
+
+volumes:
+  garage_meta:
+  garage_data:
