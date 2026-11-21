@@ -31,6 +31,12 @@
             "n_halflives": 2
         },
 
+        "dilution": {
+            "method": "molar_concentration", 
+            "value": 0.02, 
+            "final_volume": 20
+        },
+
         "sequencing": {
             "is_perfect": true
         }
