@@ -101,4 +101,4 @@ public record HeartbeatRequest(IReadOnlyList<AttemptReport> Reports);
 
 public record AttemptKey(int JobId, int AttemptId);
 
-public record HeartbeatResponse(IReadOnlyList<Assignment> Assignments, IReadOnlyList<AttemptKey> Acknowledged);
+public record HeartbeatResponse(IReadOnlyList<Assignment> Assignments, IReadOnlyList<AttemptKey> Closed);
