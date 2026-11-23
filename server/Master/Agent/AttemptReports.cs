@@ -1,5 +1,4 @@
 using Dapper;
-using Master.Pipelines;
 using Npgsql;
 using Shared.Contracts;
 

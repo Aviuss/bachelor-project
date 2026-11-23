@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-namespace Master.Pipelines;
+namespace Master.Agent;
 
 public static class JobReadiness
 {

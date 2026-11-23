@@ -37,6 +37,6 @@ public static class HeartbeatService
             assignments = await AssignmentQueries.FindAsync(db, machineId);
         }
 
-        return new HeartbeatResponse(assignments, acknowledged);
+        return new HeartbeatResponse(assignments, acknowledged, []);
     }
 }
