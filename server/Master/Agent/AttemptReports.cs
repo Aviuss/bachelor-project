@@ -22,6 +22,11 @@ public static class AttemptReports
             """,
             new { report.AttemptId, report.JobId, machineId }, transaction);
 
+        if (current == null)
+        { // we have no record of such job in db. Then just acknowledge it, so agent can get rid off it.
+            return true;
+        }
+
         if (current == "assigned" && report.Status == RunStatus.Running)
         {
             await connection.ExecuteAsync(
