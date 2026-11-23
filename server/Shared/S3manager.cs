@@ -35,4 +35,17 @@ public class S3manager
 
     public Task DeleteResource(string key) =>
         Client.DeleteObjectAsync(bucket, key);
+
+    public async Task<bool> ResourceExists(string key)
+    {
+        try
+        {
+            await Client.GetObjectMetadataAsync(bucket, key);
+            return true;
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
 }
