@@ -229,10 +229,15 @@ public abstract class AbstractRunner : IDisposable
             await PostRun(cancellationToken);
             await UploadOutputs(s3, cancellationToken);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
         {
             cancelled = true;
             Console.WriteLine($"[Runner] Próba {AttemptId} anulowana.");
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            error = new OperationCanceledException("Agent shut down.");
+            Console.WriteLine($"[Runner] Próba {AttemptId} przerwana przez wyłączenie agenta.");
         }
         catch (Exception ex)
         {

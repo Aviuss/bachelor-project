@@ -30,6 +30,9 @@ public static class HeartbeatService
                 closed.Add(new AttemptKey(report.JobId, report.AttemptId));
         }
 
+        if (request?.ShuttingDown == true)
+            return new HeartbeatResponse([], []);
+
         var assignments = await AssignmentQueries.FindAsync(db, machineId);
         for (var waited = TimeSpan.Zero;
              assignments.Count == 0 && closed.Count == 0 && waited < LongPollTimeout;

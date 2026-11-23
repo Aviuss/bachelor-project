@@ -23,6 +23,7 @@ public class Program
         await heartbeat.RunAsync(stopping.Token);
 
         await runners.StopAsync();
+        await heartbeat.SendFinalAsync();
     }
 
     private static string Required(string name) =>
