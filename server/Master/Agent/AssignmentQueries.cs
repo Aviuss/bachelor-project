@@ -22,6 +22,8 @@ public static class AssignmentQueries
             "SELECT 1 FROM machines WHERE id = @machineId FOR UPDATE",
             new { machineId }, transaction);
 
+        await JobAttemptsLock.AcquireAsync(connection, transaction);
+
         var active = await connection.QueryFirstOrDefaultAsync<ActiveAttemptRow>(
             """
             SELECT id AS AttemptId, status::text AS Status
