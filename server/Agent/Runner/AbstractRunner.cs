@@ -208,7 +208,7 @@ public abstract class AbstractRunner : IDisposable
         OutputPath = null;
     }
 
-    public async Task ExecuteAsync(S3manager s3)
+    public async Task ExecuteAsync(S3manager s3, CancellationToken stoppingToken)
     {
         if (Status != RunStatus.Assigned)
             throw new InvalidOperationException($"Attempt {AttemptId} has already been started.");
@@ -217,7 +217,8 @@ public abstract class AbstractRunner : IDisposable
         StartedAt = DateTimeOffset.UtcNow;
         await Task.Yield();
 
-        var cancellationToken = _cancellation.Token;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_cancellation.Token, stoppingToken);
+        var cancellationToken = linked.Token;
         Exception? error = null;
         bool cancelled = false;
         try

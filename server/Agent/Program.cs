@@ -18,9 +18,11 @@ public class Program
         using var onInterrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, Stop);
         using var onTerminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, Stop);
 
-        var runners = new Runner.RunnerFactory(CreateS3Manager());
+        var runners = new Runner.RunnerFactory(CreateS3Manager(), stopping.Token);
         using var heartbeat = new HeartbeatClient(Required("MASTER_AGENT_URL"), Required("AGENT_TOKEN"), runners);
         await heartbeat.RunAsync(stopping.Token);
+
+        await runners.StopAsync();
     }
 
     private static string Required(string name) =>

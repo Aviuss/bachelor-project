@@ -20,11 +20,13 @@ public class RunnerFactory
     private sealed record Run(AbstractRunner? Runner, Task? Execution, string? RejectedError);
 
     private readonly S3manager _s3;
+    private readonly CancellationToken _stopping;
     private readonly ConcurrentDictionary<(int JobId, int AttemptId), Run> _runs = new();
 
-    public RunnerFactory(S3manager s3)
+    public RunnerFactory(S3manager s3, CancellationToken stopping)
     {
         _s3 = s3;
+        _stopping = stopping;
     }
 
     public async Task RunAsync(Assignment assignment)
@@ -52,7 +54,7 @@ public class RunnerFactory
 
         using (runner)
         {
-            var execution = runner.ExecuteAsync(_s3);
+            var execution = runner.ExecuteAsync(_s3, _stopping);
             _runs[key] = new Run(runner, execution, null);
             await execution;
         }
@@ -75,6 +77,26 @@ public class RunnerFactory
         }
 
         return reports;
+    }
+
+    public async Task StopAsync()
+    {
+        foreach (var (key, run) in _runs)
+        {
+            if (run.Runner is null)
+                continue;
+
+            try
+            {
+                if (run.Execution is not null)
+                    await run.Execution;
+                run.Runner.Cleanup();
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"[Runner] Cleanup of attempt {key.AttemptId} failed: {e.Message}");
+            }
+        }
     }
 
     public async Task CloseAsync((int JobId, int AttemptId) key)
