@@ -32,7 +32,7 @@ public class DnaAeonJob : DockerRunner
         }
     }
 
-    protected override Task PostRun()
+    protected override Task PostRun(CancellationToken cancellationToken)
     {
         if (InputPath is null || OutputPath is null)
             throw new InvalidOperationException("Folders have not been prepared.");

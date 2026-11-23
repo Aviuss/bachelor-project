@@ -1,7 +1,7 @@
 using Dapper;
 using Npgsql;
 
-namespace Master.Pipelines;
+namespace Master.Agent;
 
 public static class JobReadiness
 {
@@ -10,11 +10,11 @@ public static class JobReadiness
     private const int DefaultTimeoutS = 3600;
     private const int MaxAttempts = 3;
 
-    public static Task UpdateAsync(NpgsqlConnection connection, NpgsqlTransaction transaction) {
-        return connection.ExecuteAsync(
-            """
-            SELECT pg_advisory_xact_lock(hashtext('job_readiness'));
+    public static async Task UpdateAsync(NpgsqlConnection connection, NpgsqlTransaction transaction) {
+        await JobAttemptsLock.AcquireAsync(connection, transaction);
 
+        await connection.ExecuteAsync(
+            """
             INSERT INTO job_attempts (job_id, status, mem_mb, cpu, timeout_s)
             SELECT job.id, 'ready'::attempt_status, @DefaultMemMb, @DefaultCpu, @DefaultTimeoutS
             FROM jobs AS job

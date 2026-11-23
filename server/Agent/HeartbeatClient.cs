@@ -10,6 +10,7 @@ class HeartbeatClient : IDisposable
 {
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(40);
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan FinalHeartbeatTimeout = TimeSpan.FromSeconds(10);
 
     private readonly HttpClient _client;
     private readonly RunnerFactory _runners;
@@ -38,6 +39,26 @@ class HeartbeatClient : IDisposable
         }
     }
 
+    public async Task SendFinalAsync()
+    {
+        var reports = _runners.GetReports();
+        if (reports.Count == 0)
+            return;
+
+        using var timeout = new CancellationTokenSource(FinalHeartbeatTimeout);
+        try
+        {
+            var request = new HeartbeatRequest(reports, ShuttingDown: true);
+            using var response = await _client.PostAsJsonAsync("/agent/v1/heartbeat", request, timeout.Token);
+            response.EnsureSuccessStatusCode();
+            Console.WriteLine($"[Heartbeat] Final heartbeat sent with {reports.Count} reports.");
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            Console.Error.WriteLine($"[Heartbeat] Final heartbeat failed: {e.Message}");
+        }
+    }
+
     private async Task<TimeSpan> SendHeartbeatAsync(CancellationToken cancellationToken)
     {
         HeartbeatResponse heartbeat;
@@ -56,17 +77,10 @@ class HeartbeatClient : IDisposable
             return RetryDelay;
         }
 
-        foreach (var ack in heartbeat.Acknowledged)
+        foreach (var closed in heartbeat.Closed)
         {
-            try
-            {
-                _runners.Acknowledge((ack.JobId, ack.AttemptId));
-                Console.WriteLine($"[Heartbeat] Attempt {ack.AttemptId} of job {ack.JobId} acknowledged.");
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine($"[Heartbeat] Cleanup of attempt {ack.AttemptId} failed: {e.Message}");
-            }
+            _ = _runners.CloseAsync((closed.JobId, closed.AttemptId)); 
+            Console.WriteLine($"[Heartbeat] Attempt {closed.AttemptId} of job {closed.JobId} closed.");
         }
 
         foreach (var assignment in heartbeat.Assignments)

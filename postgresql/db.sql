@@ -1,5 +1,4 @@
 CREATE TYPE attempt_status AS ENUM (
-    'pending',
     'ready',
 	'assigned',
 	'running',
