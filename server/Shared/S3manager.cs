@@ -27,11 +27,16 @@ public class S3manager
         this.bucket = bucket;
     }
 
-    public Task DownloadResource(string key, string locationTo, string name) =>
-        transfer.DownloadAsync(Path.Combine(locationTo, name), bucket, key);
+    public Task DownloadResource(string key, string locationTo, string name, CancellationToken cancellationToken = default) =>
+        transfer.DownloadAsync(new TransferUtilityDownloadRequest
+        {
+            BucketName = bucket,
+            Key = key,
+            FilePath = Path.Combine(locationTo, name),
+        }, cancellationToken);
 
-    public Task WriteResource(string key, string locationFrom, string name) =>
-        transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key);
+    public Task WriteResource(string key, string locationFrom, string name, CancellationToken cancellationToken = default) =>
+        transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key, cancellationToken);
 
     public Task DeleteResource(string key) =>
         Client.DeleteObjectAsync(bucket, key);
