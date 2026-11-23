@@ -76,10 +76,12 @@ public record DbResource(Guid ResourceId, ResourceDirection Direction, string Na
 [JsonConverter(typeof(JsonStringEnumConverter<RunStatus>))]
 public enum RunStatus
 {
+    Ready,
     Assigned,
     Running,
     Succeeded,
-    Failed
+    Failed,
+    Cancelled
 }
 
 public static class JobTypes
@@ -99,4 +101,4 @@ public record HeartbeatRequest(IReadOnlyList<AttemptReport> Reports);
 
 public record AttemptKey(int JobId, int AttemptId);
 
-public record HeartbeatResponse(IReadOnlyList<Assignment> Assignments, IReadOnlyList<AttemptKey> Acknowledged, IReadOnlyList<AttemptKey> ToCancel);
+public record HeartbeatResponse(IReadOnlyList<Assignment> Assignments, IReadOnlyList<AttemptKey> Acknowledged);
