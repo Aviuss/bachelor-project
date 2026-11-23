@@ -24,7 +24,8 @@ public static class HeartbeatService
         var acknowledged = new List<AttemptKey>();
         foreach (var report in request?.Reports ?? [])
         {
-            if (await AttemptReports.ApplyAsync(db, machineId, report))
+            var processedReport = await AttemptReports.ProcessAsync(db, machineId, report);
+            if (processedReport == AttemptReports.ProcessResponse.ACKNOWLEDGE)
                 acknowledged.Add(new AttemptKey(report.JobId, report.AttemptId));
         }
 
@@ -37,6 +38,6 @@ public static class HeartbeatService
             assignments = await AssignmentQueries.FindAsync(db, machineId);
         }
 
-        return new HeartbeatResponse(assignments, acknowledged, []);
+        return new HeartbeatResponse(assignments, acknowledged);
     }
 }
