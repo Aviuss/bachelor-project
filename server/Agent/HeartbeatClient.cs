@@ -56,16 +56,16 @@ class HeartbeatClient : IDisposable
             return RetryDelay;
         }
 
-        foreach (var ack in heartbeat.Acknowledged)
+        foreach (var closed in heartbeat.Closed)
         {
             try
             {
-                _runners.Acknowledge((ack.JobId, ack.AttemptId));
-                Console.WriteLine($"[Heartbeat] Attempt {ack.AttemptId} of job {ack.JobId} acknowledged.");
+                _runners.Close((closed.JobId, closed.AttemptId));
+                Console.WriteLine($"[Heartbeat] Attempt {closed.AttemptId} of job {closed.JobId} closed.");
             }
             catch (Exception e)
             {
-                Console.Error.WriteLine($"[Heartbeat] Cleanup of attempt {ack.AttemptId} failed: {e.Message}");
+                Console.Error.WriteLine($"[Heartbeat] Cleanup of attempt {closed.AttemptId} failed: {e.Message}");
             }
         }
 
