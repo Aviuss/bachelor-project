@@ -38,8 +38,16 @@ public class S3manager
     public Task WriteResource(string key, string locationFrom, string name, CancellationToken cancellationToken = default) =>
         transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key, cancellationToken);
 
-    public Task DeleteResource(string key) =>
-        Client.DeleteObjectAsync(bucket, key);
+    public async Task DeleteResource(string key)
+    {
+        try
+        {
+            await Client.DeleteObjectAsync(bucket, key);
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+        }
+    }
 
     public async Task<bool> ResourceExists(string key)
     {

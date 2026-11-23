@@ -58,15 +58,8 @@ class HeartbeatClient : IDisposable
 
         foreach (var closed in heartbeat.Closed)
         {
-            try
-            {
-                _runners.Close((closed.JobId, closed.AttemptId));
-                Console.WriteLine($"[Heartbeat] Attempt {closed.AttemptId} of job {closed.JobId} closed.");
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine($"[Heartbeat] Cleanup of attempt {closed.AttemptId} failed: {e.Message}");
-            }
+            _ = _runners.CloseAsync((closed.JobId, closed.AttemptId)); 
+            Console.WriteLine($"[Heartbeat] Attempt {closed.AttemptId} of job {closed.JobId} closed.");
         }
 
         foreach (var assignment in heartbeat.Assignments)

@@ -67,8 +67,8 @@ public static class AttemptReports
             case (null, _, _):
                 return (ProcessResponse.CLOSE, s3Tasks);
 
-            // another attempt already won: this one lost, close it and discard its outputs
-            case (_, not null, RunStatus.Succeeded):
+            // another attempt already won: this one lost, close it and discard its (possibly partial) outputs
+            case (_, not null, RunStatus.Succeeded or RunStatus.Failed):
                 await CancelAttemptAsync(connection, transaction, report);
                 s3Tasks.AddRange(DeleteOutputs(s3, report));
                 return (ProcessResponse.CLOSE, s3Tasks);
@@ -87,6 +87,10 @@ public static class AttemptReports
             // closed by master (e.g. timed out by JobTimeout), but the agent finished anyway: accept the late success
             case (RunStatus.Failed or RunStatus.Cancelled, null, RunStatus.Succeeded):
                 await AcceptSuccessAsync(connection, transaction, s3, report, s3Tasks);
+                return (ProcessResponse.CLOSE, s3Tasks);
+
+            case (RunStatus.Failed or RunStatus.Cancelled, null, RunStatus.Failed):
+                s3Tasks.AddRange(DeleteOutputs(s3, report));
                 return (ProcessResponse.CLOSE, s3Tasks);
 
             // closed by master; whatever the agent says now changes nothing
@@ -112,6 +116,7 @@ public static class AttemptReports
             case (RunStatus.Assigned or RunStatus.Running, null, RunStatus.Failed):
                 await SaveCurrentReportStatus(connection, transaction, report);
                 await JobReadiness.UpdateAsync(connection, transaction);
+                s3Tasks.AddRange(DeleteOutputs(s3, report));
                 return (ProcessResponse.CLOSE, s3Tasks);
 
             default:

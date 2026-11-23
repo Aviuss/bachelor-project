@@ -17,10 +17,10 @@ public class RunnerFactory
         [JobTypes.DnaAeonDecode] = a => new DnaAeonJob(a, DnaAeonMode.Decode),
     };
 
+    private sealed record Run(AbstractRunner? Runner, Task? Execution, string? RejectedError);
+
     private readonly S3manager _s3;
-    private readonly ConcurrentDictionary<(int JobId, int AttemptId), AbstractRunner> _runs = new();
-    private readonly ConcurrentDictionary<(int JobId, int AttemptId), string> _rejected = new();
-    public IReadOnlyDictionary<(int JobId, int AttemptId), AbstractRunner> Runs => _runs;
+    private readonly ConcurrentDictionary<(int JobId, int AttemptId), Run> _runs = new();
 
     public RunnerFactory(S3manager s3)
     {
@@ -30,12 +30,12 @@ public class RunnerFactory
     public async Task RunAsync(Assignment assignment)
     {
         var key = (assignment.JobId, assignment.AttemptId);
-        if (_runs.ContainsKey(key) || _rejected.ContainsKey(key))
+        if (_runs.ContainsKey(key))
             return;
 
         if (!RunnerDefinitions.TryGetValue(assignment.JobTypeId, out var create))
         {
-            _rejected.TryAdd(key, $"Not found jobTypeId {assignment.JobTypeId}");
+            _runs.TryAdd(key, new Run(null, null, $"Not found jobTypeId {assignment.JobTypeId}"));
             return;
         }
 
@@ -46,16 +46,15 @@ public class RunnerFactory
         }
         catch (Exception ex)
         {
-            _rejected.TryAdd(key, ex.Message);
+            _runs.TryAdd(key, new Run(null, null, ex.Message));
             return;
         }
 
         using (runner)
         {
-            if (!_runs.TryAdd(key, runner))
-                return;
-
-            await runner.ExecuteAsync(_s3);
+            var execution = runner.ExecuteAsync(_s3);
+            _runs[key] = new Run(runner, execution, null);
+            await execution;
         }
     }
 
@@ -63,28 +62,36 @@ public class RunnerFactory
     {
         var reports = new List<AttemptReport>();
 
-        foreach (var (key, runner) in _runs)
+        foreach (var (key, run) in _runs)
         {
-            var outputs = runner.Status == RunStatus.Succeeded ? runner.OutputResources : [];
-            
-            reports.Add(new AttemptReport(key.JobId, key.AttemptId, runner.Status, runner.Error?.Message, runner.StartedAt, runner.FinishedAt, outputs));
-        }
+            var runner = run.Runner;
+            if (runner is null)
+            {
+                reports.Add(new AttemptReport(key.JobId, key.AttemptId, RunStatus.Failed, run.RejectedError, null, null, []));
+                continue;
+            }
 
-        foreach (var (key, error) in _rejected)
-            reports.Add(new AttemptReport(key.JobId, key.AttemptId, RunStatus.Failed, error, null, null, []));
+            reports.Add(new AttemptReport(key.JobId, key.AttemptId, runner.Status, runner.Error?.Message, runner.StartedAt, runner.FinishedAt, runner.OutputResources));
+        }
 
         return reports;
     }
 
-    public void Acknowledge((int JobId, int AttemptId) key)
+    public async Task CloseAsync((int JobId, int AttemptId) key)
     {
-        if (_rejected.TryRemove(key, out _))
+        if (!_runs.TryRemove(key, out var run) || run.Runner is null)
             return;
 
-        if (!_runs.TryGetValue(key, out var runner))
-            return;
-
-        runner.Cleanup();
-        _runs.TryRemove(key, out _);
+        try
+        {
+            run.Runner.Cancel();
+            if (run.Execution is not null)
+                await run.Execution;
+            run.Runner.Cleanup();
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"[Runner] Cleanup of attempt {key.AttemptId} failed: {e.Message}");
+        }
     }
 }

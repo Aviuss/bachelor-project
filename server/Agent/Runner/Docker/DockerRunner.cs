@@ -31,7 +31,7 @@ public abstract class DockerRunner : AbstractRunner
     }
 
 
-    protected override async Task Run()
+    protected override async Task Run(CancellationToken cancellationToken)
     {
         if (InputPath is null || OutputPath is null)
             throw new InvalidOperationException("Folders have not been prepared. Call PrepareFolders() first.");
@@ -62,7 +62,7 @@ public abstract class DockerRunner : AbstractRunner
             {
                 Binds = binds
             }
-        });
+        }, cancellationToken);
 
         string containerId = response.ID;
 
@@ -71,10 +71,10 @@ public abstract class DockerRunner : AbstractRunner
 
         try
         {
-            await _client.Containers.StartContainerAsync(containerId, new ContainerStartParameters());
+            await _client.Containers.StartContainerAsync(containerId, new ContainerStartParameters(), cancellationToken);
             Console.WriteLine("[Docker] Kontener wystartował.");
 
-            var waitResponse = await _client.Containers.WaitContainerAsync(containerId);
+            var waitResponse = await _client.Containers.WaitContainerAsync(containerId, cancellationToken);
 
             using var multiplexedStream = await _client.Containers.GetContainerLogsAsync(
                 containerId,

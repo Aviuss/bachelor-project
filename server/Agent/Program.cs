@@ -9,12 +9,6 @@ public class Program
 {
     static async Task Main(string[] args)
     {
-        if (args is ["docker-test"])
-        {
-            await RunDockerTestAsync();
-            return;
-        }
-
         using var stopping = new CancellationTokenSource();
         void Stop(PosixSignalContext context)
         {
@@ -39,21 +33,6 @@ public class Program
         secretKey: Required("AWS_SECRET_ACCESS_KEY"),
         bucket: Required("S3_BUCKET"));
 
-    private static async Task RunDockerTestAsync()
-    {
-        var assignment = new Shared.Contracts.Assignment(
-            JobId: 1,
-            AttemptId: 123456789,
-            JobTypeId: 1,
-            ParamsJson: "{\"processes\"...",
-            Resources: []);
-
-        var runners = new Runner.RunnerFactory(CreateS3Manager());
-        await runners.RunAsync(assignment);
-
-        var run = runners.Runs[(assignment.JobId, assignment.AttemptId)];
-        Console.WriteLine($"Status: {run.Status}, zakończone: {run.IsFinished}");
-    }
 }
 
 

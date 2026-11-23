@@ -9,7 +9,11 @@ namespace Agent.Runner;
 public abstract class AbstractRunner : IDisposable
 {
     public RunStatus Status { get; private set; } = RunStatus.Assigned;
-    public bool IsFinished => Status is RunStatus.Succeeded or RunStatus.Failed;
+    public bool IsFinished => Status is RunStatus.Succeeded or RunStatus.Failed or RunStatus.Cancelled;
+
+    private readonly CancellationTokenSource _cancellation = new();
+
+    public void Cancel() => _cancellation.Cancel();
     public Exception? Error { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? FinishedAt { get; private set; }
@@ -58,9 +62,9 @@ public abstract class AbstractRunner : IDisposable
 
     protected virtual bool UseFilesForDbResources => true;
 
-    protected virtual Task PreRun() => Task.CompletedTask;
-    protected abstract Task Run();
-    protected virtual Task PostRun() => Task.CompletedTask;
+    protected virtual Task PreRun(CancellationToken cancellationToken) => Task.CompletedTask;
+    protected abstract Task Run(CancellationToken cancellationToken);
+    protected virtual Task PostRun(CancellationToken cancellationToken) => Task.CompletedTask;
 
     protected static string FileName(Resource resource) {
         string format = resource.Format switch
@@ -86,25 +90,25 @@ public abstract class AbstractRunner : IDisposable
         _ => throw new NotSupportedException($"DB resource format {resource.Format} is not supported."),
     };
 
-    private async Task DownloadResource(Resource resource, S3manager s3, string inputPath)
+    private async Task DownloadResource(Resource resource, S3manager s3, string inputPath, CancellationToken cancellationToken)
     {
         string fileName = FileName(resource);
 
         switch (resource)
         {
             case S3Resource s3Resource:
-                await s3.DownloadResource(s3Resource.GetKey(), inputPath, fileName);
+                await s3.DownloadResource(s3Resource.GetKey(), inputPath, fileName, cancellationToken);
                 break;
             case DbResource db when UseFilesForDbResources:
-                await File.WriteAllTextAsync(Path.Combine(inputPath, fileName), ToFileContent(db));
+                await File.WriteAllTextAsync(Path.Combine(inputPath, fileName), ToFileContent(db), cancellationToken);
                 break;
         }
     }
 
-    private async Task PrepareInputs(S3manager s3)
+    private async Task PrepareInputs(S3manager s3, CancellationToken cancellationToken)
     {
         PrepareFolders();
-        await Task.WhenAll(InputResources.Select(r => DownloadResource(r, s3, InputPath!)));
+        await Task.WhenAll(InputResources.Select(r => DownloadResource(r, s3, InputPath!, cancellationToken)));
     }
 
     protected void SetOutputValue(string name, JsonElement value) => SetOutput(name, ResourceFormat.JSON, value);
@@ -126,13 +130,13 @@ public abstract class AbstractRunner : IDisposable
         _outputResources[index] = resource with { Value = JsonSerializer.SerializeToElement(new { value }) };
     }
 
-    private async Task UploadOutputs(S3manager s3)
+    private async Task UploadOutputs(S3manager s3, CancellationToken cancellationToken)
     {
-        await CollectDbOutputs(OutputPath!);
-        await Task.WhenAll(_outputResources.OfType<S3Resource>().Select(r => UploadResource(r, s3, OutputPath!, AttemptId)));
+        await CollectDbOutputs(OutputPath!, cancellationToken);
+        await Task.WhenAll(_outputResources.OfType<S3Resource>().Select(r => UploadResource(r, s3, OutputPath!, AttemptId, cancellationToken)));
     }
 
-    private async Task CollectDbOutputs(string outputPath)
+    private async Task CollectDbOutputs(string outputPath, CancellationToken cancellationToken)
     {
         for (int i = 0; i < _outputResources.Count; i++)
         {
@@ -143,7 +147,7 @@ public abstract class AbstractRunner : IDisposable
                 var dbResource = (DbResource)resource;
 
                 if (UseFilesForDbResources)
-                    _outputResources[i] = await ReadDbOutput(dbResource, outputPath);
+                    _outputResources[i] = await ReadDbOutput(dbResource, outputPath, cancellationToken);
                 else
                 {
                     bool hasValue = dbResource.Value.ValueKind == JsonValueKind.Object
@@ -156,7 +160,7 @@ public abstract class AbstractRunner : IDisposable
         }
     }
 
-    private static async Task<DbResource> ReadDbOutput(DbResource resource, string outputPath)
+    private static async Task<DbResource> ReadDbOutput(DbResource resource, string outputPath, CancellationToken cancellationToken)
     {
         string fileName = FileName(resource);
         string filePath = Path.Combine(outputPath, fileName);
@@ -164,7 +168,7 @@ public abstract class AbstractRunner : IDisposable
         if (!File.Exists(filePath))
             throw new FileNotFoundException($"Output resource '{resource.Name}' was not produced.", fileName);
 
-        string content = await File.ReadAllTextAsync(filePath);
+        string content = await File.ReadAllTextAsync(filePath, cancellationToken);
 
         object value = resource.Format switch
         {
@@ -179,14 +183,14 @@ public abstract class AbstractRunner : IDisposable
         return resource with { Value = JsonSerializer.SerializeToElement(new { value }) };
     }
 
-    private static async Task UploadResource(S3Resource resource, S3manager s3, string outputPath, int attemptId)
+    private static async Task UploadResource(S3Resource resource, S3manager s3, string outputPath, int attemptId, CancellationToken cancellationToken)
     {
         string fileName = FileName(resource);
 
         if (!File.Exists(Path.Combine(outputPath, fileName)))
             throw new FileNotFoundException($"Output resource '{resource.Name}' was not produced.", fileName);
 
-        await s3.WriteResource(resource.GetKey(attemptId), outputPath, fileName);
+        await s3.WriteResource(resource.GetKey(attemptId), outputPath, fileName, cancellationToken);
     }
 
     public void Cleanup()
@@ -213,24 +217,35 @@ public abstract class AbstractRunner : IDisposable
         StartedAt = DateTimeOffset.UtcNow;
         await Task.Yield();
 
+        var cancellationToken = _cancellation.Token;
         Exception? error = null;
+        bool cancelled = false;
         try
         {
-            await PrepareInputs(s3);
-            await PreRun();
-            await Run();
-            await PostRun();
-            await UploadOutputs(s3);
+            await PrepareInputs(s3, cancellationToken);
+            await PreRun(cancellationToken);
+            await Run(cancellationToken);
+            await PostRun(cancellationToken);
+            await UploadOutputs(s3, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            cancelled = true;
+            Console.WriteLine($"[Runner] Próba {AttemptId} anulowana.");
         }
         catch (Exception ex)
         {
             error = ex;
             Console.WriteLine($"[Runner] Próba {AttemptId} nie powiodła się: {ex.Message}");
         }
-
-        Error = error;
-        FinishedAt = DateTimeOffset.UtcNow;
-        Status = error is null ? RunStatus.Succeeded : RunStatus.Failed;
+        finally
+        {
+            Error = error;
+            FinishedAt = DateTimeOffset.UtcNow;
+            Status = cancelled ? RunStatus.Cancelled
+                : error is null ? RunStatus.Succeeded
+                : RunStatus.Failed;
+        }
     }
 
     public void Dispose()
