@@ -6,9 +6,7 @@ namespace Master.Agent;
 public static class JobTimeout
 {
     public static async Task UpdateAsync(NpgsqlConnection connection, NpgsqlTransaction transaction) {
-        await connection.ExecuteAsync(
-            "SELECT pg_advisory_xact_lock(hashtext('job_timeout'))",
-            transaction: transaction);
+        await JobAttemptsLock.AcquireAsync(connection, transaction);
 
         int timedOut = await connection.ExecuteAsync(
             """
