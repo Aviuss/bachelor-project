@@ -2,10 +2,14 @@
     "id": 1,
     "used_algorithm": "NOREC",
     "primers": {},
+    "output_format": "txt",
+    "output_merge": false,
+    "output_dereplication": true,
 
     "processes": {
+
         "synthesis": {
-            "is_perfect": true,
+            "is_perfect": false,
             "method": "Array",
             "oligo_distribution_type": "lognormal",
             "oligo_distribution_params": {"mean": 0, "sigma": 0.30},
@@ -15,7 +19,7 @@
 
         "pcr": {
 
-            "is_perfect": true,
+            "is_perfect": false,
             "pcr_mode": "HiFi",
             "primers": "primers_2",
             "template_volume": 1,
@@ -27,7 +31,7 @@
         },
 
         "aging": {
-            "is_perfect": true,
+            "is_perfect": false,
             "n_halflives": 2
         },
 
@@ -38,7 +42,7 @@
         },
 
         "sequencing": {
-            "is_perfect": true
+            "is_perfect": false
         }
     }
 }
