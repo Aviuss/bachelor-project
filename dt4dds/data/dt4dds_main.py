@@ -11,7 +11,7 @@ import dt4dds
 INPUT_DIR = Path("/data/input")
 OUTPUT_DIR = Path("/data/output")
 CONFIG_FILE = INPUT_DIR / "config.json"
-FASTA_FILE = INPUT_DIR / "fasta_konrad.fastq"
+FASTA_FILE = INPUT_DIR / "encoded.fasta"
 SEQUENCES_FILE = INPUT_DIR / "sequences.txt"
 
 READ_LENGTH = 150

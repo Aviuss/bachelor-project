@@ -2,8 +2,8 @@
     "id": 1,
     "used_algorithm": "NOREC",
     "primers": {},
-    "output_format": "txt",
-    "output_merge": false,
+    "output_format": "fasta",
+    "output_merge": true,
     "output_dereplication": true,
 
     "processes": {
@@ -42,6 +42,10 @@
         },
 
         "sequencing": {
+            "is_perfect": false
+        },
+
+         "clustering": {
             "is_perfect": false
         }
     }
