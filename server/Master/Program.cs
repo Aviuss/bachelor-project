@@ -17,7 +17,8 @@ public class Program
             return;
         }
 
-        var agentApp = BuildApi(args, "AGENT_API_PORT", 5081);
+        var agentApp = BuildApi(args, "AGENT_API_PORT", 5081,
+            services => services.AddHostedService<JobTimeoutService>());
         agentApp.MapAgentApi();
 
         var publicApp = BuildApi(args, "PUBLIC_API_PORT", 5080);
@@ -29,7 +30,8 @@ public class Program
         await Task.WhenAll(publicApp.WaitForShutdownAsync(), agentApp.WaitForShutdownAsync());
     }
 
-    private static WebApplication BuildApi(string[] args, string portKey, int defaultPort)
+    private static WebApplication BuildApi(
+        string[] args, string portKey, int defaultPort, Action<IServiceCollection>? configureServices = null)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +49,7 @@ public class Program
             bucket: Required(builder.Configuration, "S3_BUCKET")));
 
         builder.Services.AddOpenApi();
+        configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();
 

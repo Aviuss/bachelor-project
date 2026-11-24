@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Dapper;
+using Master.Agent;
 using Npgsql;
 using Shared;
 using Shared.Contracts;

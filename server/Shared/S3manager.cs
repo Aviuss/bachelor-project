@@ -27,12 +27,38 @@ public class S3manager
         this.bucket = bucket;
     }
 
-    public Task DownloadResource(string key, string locationTo, string name) =>
-        transfer.DownloadAsync(Path.Combine(locationTo, name), bucket, key);
+    public Task DownloadResource(string key, string locationTo, string name, CancellationToken cancellationToken = default) =>
+        transfer.DownloadAsync(new TransferUtilityDownloadRequest
+        {
+            BucketName = bucket,
+            Key = key,
+            FilePath = Path.Combine(locationTo, name),
+        }, cancellationToken);
 
-    public Task WriteResource(string key, string locationFrom, string name) =>
-        transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key);
+    public Task WriteResource(string key, string locationFrom, string name, CancellationToken cancellationToken = default) =>
+        transfer.UploadAsync(Path.Combine(locationFrom, name), bucket, key, cancellationToken);
 
-    public Task DeleteResource(string key) =>
-        Client.DeleteObjectAsync(bucket, key);
+    public async Task DeleteResource(string key)
+    {
+        try
+        {
+            await Client.DeleteObjectAsync(bucket, key);
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+        }
+    }
+
+    public async Task<bool> ResourceExists(string key)
+    {
+        try
+        {
+            await Client.GetObjectMetadataAsync(bucket, key);
+            return true;
+        }
+        catch (AmazonS3Exception e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
+    }
 }
