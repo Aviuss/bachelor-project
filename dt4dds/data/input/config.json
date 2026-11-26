@@ -1,6 +1,5 @@
 {
     "id": 1,
-    "used_algorithm": "NOREC",
     "primers": {},
     "output_format": "fasta",
     "output_merge": true,
