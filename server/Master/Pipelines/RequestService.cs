@@ -59,7 +59,7 @@ public static class RequestService
             long size = file.Length;
             await file.DisposeAsync();
 
-            string key = new S3Resource(resourceId, ResourceDirection.Input, "", ResourceFormat.BINARY, null).GetKey();
+            string key = new S3Resource(resourceId, ResourceDirection.Input, "", false, ResourceFormat.BINARY, null).GetKey();
             await s3.WriteResource(key, tmpFolder, "upload");
 
             await connection.ExecuteAsync(

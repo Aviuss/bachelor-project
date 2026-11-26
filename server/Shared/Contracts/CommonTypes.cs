@@ -35,10 +35,10 @@ public enum ResourceLocation
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "location")]
 [JsonDerivedType(typeof(S3Resource), "S3")]
 [JsonDerivedType(typeof(DbResource), "DB")]
-public abstract record Resource(Guid ResourceId, ResourceDirection Direction, string Name, ResourceFormat Format);
+public abstract record Resource(Guid ResourceId, ResourceDirection Direction, string Name, bool IsList, ResourceFormat Format);
 
-public record S3Resource(Guid ResourceId, ResourceDirection Direction, string Name, ResourceFormat Format, int? ProducedBy)
-    : Resource(ResourceId, Direction, Name, Format)
+public record S3Resource(Guid ResourceId, ResourceDirection Direction, string Name, bool IsList, ResourceFormat Format, int? ProducedBy)
+    : Resource(ResourceId, Direction, Name, IsList, Format)
 {
     public string GetKey(int? attemptId = null) => (Direction, ProducedBy, attemptId) switch
     {
@@ -51,8 +51,8 @@ public record S3Resource(Guid ResourceId, ResourceDirection Direction, string Na
     };
 }
 
-public record DbResource(Guid ResourceId, ResourceDirection Direction, string Name, ResourceFormat Format, JsonElement Value)
-    : Resource(ResourceId, Direction, Name, Format)
+public record DbResource(Guid ResourceId, ResourceDirection Direction, string Name, bool IsList, ResourceFormat Format, JsonElement Value)
+    : Resource(ResourceId, Direction, Name, IsList, Format)
 {
     public JsonElement GetJson() => Get(ResourceFormat.JSON);
     public int GetInt() => Get(ResourceFormat.INT).GetInt32();

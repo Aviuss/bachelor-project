@@ -77,7 +77,11 @@ public abstract class AbstractRunner : IDisposable
             _ => throw new NotSupportedException($"Resource format {resource.Format} is not supported."),
         };
 
-        return resource.Name + format;
+        string name = resource.IsList
+            ? Path.Combine(resource.Name, resource.ResourceId.ToString())
+            : resource.Name;
+
+        return name + format;
     }
 
     private static string ToFileContent(DbResource resource) => resource.Format switch
@@ -93,6 +97,9 @@ public abstract class AbstractRunner : IDisposable
     private async Task DownloadResource(Resource resource, S3manager s3, string inputPath, CancellationToken cancellationToken)
     {
         string fileName = FileName(resource);
+
+        if (resource.IsList)
+            Directory.CreateDirectory(Path.Combine(inputPath, resource.Name));
 
         switch (resource)
         {

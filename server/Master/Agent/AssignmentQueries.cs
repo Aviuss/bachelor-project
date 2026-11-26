@@ -9,7 +9,8 @@ internal record ActiveAttemptRow(int AttemptId, string Status);
 
 internal record AttemptRow(int AttemptId, int JobId, int JobTypeId, string ParamsJson);
 
-internal record ResourceRow(Guid ResourceId, string Direction, string Name, string Format, string Location, int? ProducedBy, string? Value);
+internal record ResourceRow(
+    Guid ResourceId, string Direction, string Name, bool IsList, string Format, string Location, int? ProducedBy, string? Value);
 
 public static class AssignmentQueries
 {
@@ -73,6 +74,7 @@ public static class AssignmentQueries
             SELECT r.id                    AS ResourceId,
                    'in'                    AS Direction,
                    io.name                 AS Name,
+                   io.is_list              AS IsList,
                    f.name                  AS Format,
                    io.location_id::text    AS Location,
                    r.produced_by           AS ProducedBy,
@@ -86,7 +88,7 @@ public static class AssignmentQueries
 
             UNION ALL
 
-            SELECT r.id, 'out', io.name, f.name, io.location_id::text, NULL::int, NULL::text
+            SELECT r.id, 'out', io.name, false, f.name, io.location_id::text, NULL::int, NULL::text
             FROM resources r
             JOIN job_type_io io ON io.id = r.producer_io_id
             JOIN resource_formats f ON f.id = io.format_id
@@ -107,8 +109,8 @@ public static class AssignmentQueries
 
         return row.Location switch
         {
-            "s3" => new S3Resource(row.ResourceId, direction, row.Name, format, row.ProducedBy),
-            "db" => new DbResource(row.ResourceId, direction, row.Name, format,
+            "s3" => new S3Resource(row.ResourceId, direction, row.Name, row.IsList, format, row.ProducedBy),
+            "db" => new DbResource(row.ResourceId, direction, row.Name, row.IsList, format,
                 JsonSerializer.Deserialize<JsonElement>(row.Value is null ? "{}" : $$"""{"value":{{row.Value}}}""")),
             _ => throw new InvalidOperationException($"Unknown resource location '{row.Location}'."),
         };
