@@ -32,7 +32,9 @@ CREATE TABLE job_type_io (
 	name        text              NOT NULL,
 	format_id   int               NOT NULL REFERENCES resource_formats(id),
 	location_id resource_location NOT NULL,
-	UNIQUE (job_type_id, direction, name, format_id)
+	is_list     boolean           NOT NULL DEFAULT false,
+	UNIQUE (job_type_id, direction, name, format_id),
+	CHECK (NOT is_list OR direction = 'in')
 );
 
 CREATE TABLE machines (
@@ -63,7 +65,7 @@ CREATE TABLE jobs (
 CREATE TABLE job_attempts (
 	id           int          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	job_id       int          NOT NULL REFERENCES jobs(id),
-	status       attempt_status NOT NULL DEFAULT 'pending',
+	status       attempt_status NOT NULL DEFAULT 'ready',
 	mem_mb       int          NOT NULL CHECK (mem_mb > 0),
 	cpu          numeric(5,2) NOT NULL CHECK (cpu > 0),
 	timeout_s    int          NOT NULL CHECK (timeout_s > 0),
@@ -76,7 +78,7 @@ CREATE TABLE job_attempts (
 	assigned_at  timestamptz,
 	started_at   timestamptz,
 	finished_at  timestamptz,
-	CHECK (status IN ('pending','ready','cancelled')
+	CHECK (status IN ('ready','cancelled')
 		OR (machine_id IS NOT NULL AND assigned_at IS NOT NULL))
 );
 
@@ -105,7 +107,7 @@ CREATE TABLE job_inputs (
 	job_id         int  NOT NULL REFERENCES jobs(id),
 	job_type_io_id int  NOT NULL REFERENCES job_type_io(id),
 	resource_id    uuid NOT NULL REFERENCES resources(id),
-	PRIMARY KEY (job_id, job_type_io_id)
+	PRIMARY KEY (job_id, job_type_io_id, resource_id)
 );
 
 CREATE VIEW machines_status AS
