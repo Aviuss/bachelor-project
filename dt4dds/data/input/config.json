@@ -1,9 +1,9 @@
 {
     "id": 1,
-    "primers": {},
+    "seed": 1,
     "output_format": "fasta",
     "output_merge": true,
-    "output_dereplication": true,
+    "output_dereplication": false,
 
     "processes": {
 
@@ -17,16 +17,13 @@
         },
 
         "pcr": {
-
             "is_perfect": false,
             "pcr_mode": "HiFi",
             "primers": "primers_2",
             "template_volume": 1,
-            "volume":20,
+            "volume": 20,
             "efficiency_mean": 1,
-            "n_cycles": 20,
-            "polymerase_basesubstitutionrate": 0,
-            "polymerase_fidelity": 100
+            "n_cycles": 20
         },
 
         "aging": {
@@ -35,17 +32,20 @@
         },
 
         "dilution": {
-            "method": "molar_concentration", 
-            "value": 0.02, 
-            "final_volume": 20
+            "percent": 1.0
         },
 
         "sequencing": {
-            "is_perfect": false
-        },
-
-         "clustering": {
-            "is_perfect": false
+            "is_perfect": false,
+            "n_reads": 100000
         }
+    },
+
+    "clustering": {
+        "enabled": false,
+        "identity": 0.8,
+        "consensus": false,
+        "min_cluster_size": 1,
+        "strand": "plus"
     }
 }

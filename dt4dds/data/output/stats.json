@@ -1,0 +1,17 @@
+{
+  "seed": 1,
+  "n_reads_requested": 100000,
+  "n_designed_oligos": 49,
+  "molecules_after_synthesis": 48726,
+  "molecules_after_pcr": 2460934246,
+  "molecules_after_aging": 615260800,
+  "molecules_before_sequencing": 6152608,
+  "read_pairs_sequenced": 100000,
+  "reads_after_preprocessing": 100000,
+  "n_output_sequences": 807,
+  "output_length": {
+    "min": 97,
+    "median": 110,
+    "max": 110
+  }
+}
