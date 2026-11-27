@@ -1,0 +1,56 @@
+# --- ETAP 1: Budowanie i kompilacja C++ (środowisko tymczasowe) ---
+FROM python:3.11-slim-trixie AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tworzymy izolowane środowisko wirtualne (łatwe do przeniesienia)
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Instalacja PyTorcha CPU-only
+RUN pip install --no-cache-dir \
+    torch==2.2.2 \
+    torchvision==0.17.2 \
+    --index-url https://download.pytorch.org/whl/cpu
+
+WORKDIR /opt
+RUN git clone https://github.com/itaiorr/Deep-DNA-based-storage.git dnaformer
+WORKDIR /opt/dnaformer
+
+# Instalacja bibliotek Pythona
+RUN pip install --no-cache-dir \
+    numpy scipy pandas biopython tqdm einops reedsolo scikit-learn pyyaml
+
+RUN if [ -f requirements.txt ]; then \
+        grep -vE "^(torch|torchvision|torchaudio)" requirements.txt > req_filtered.txt && \
+        pip install --no-cache-dir -r req_filtered.txt; \
+    fi
+
+# Kompilacja modułu C++ CPL_Deep
+RUN if [ -d "./DeepEncoderDecoder/CPL_Deep" ]; then \
+        cd ./DeepEncoderDecoder/CPL_Deep && make clean || true && make; \
+    fi
+
+# --- ETAP 2: Utwardzony obraz produkcyjny (Zero/Near-Zero CVE) ---
+FROM cgr.dev/chainguard/python:latest
+
+# Uruchamianie jako użytkownik nieuprzywilejowany (non-root) - domyślne w Chainguard
+ENV PYTHONUNBUFFERED=1
+ENV OMP_NUM_THREADS=4
+ENV MKL_NUM_THREADS=4
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONPATH="/opt/dnaformer:/opt/dnaformer/DeepEncoderDecoder:/opt/dnaformer/DNAformer"
+
+# Kopiujemy wyłącznie gotowe środowisko Pythona oraz skompilowany kod z Etapu 1
+COPY --from=builder --chown=nonroot:nonroot /opt/venv /opt/venv
+COPY --from=builder --chown=nonroot:nonroot /opt/dnaformer /opt/dnaformer
+COPY --chown=nonroot:nonroot adapter.py /opt/dnaformer/adapter.py
+
+WORKDIR /data
+# Chainguard ma domyślnie ENTRYPOINT ustawiony na python, podajemy więc tylko ścieżkę do skryptu
+ENTRYPOINT ["/opt/venv/bin/python", "/opt/dnaformer/adapter.py"]
